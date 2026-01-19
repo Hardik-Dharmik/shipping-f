@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://shipping-b.vercel.app/';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://shipping-b.vercel.app';
 
 // Helper function to get token from localStorage
 export function getToken() {
