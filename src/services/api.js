@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://shipping-b.vercel.app';
+import config from '../config/env.js';
+
+const API_BASE_URL = config.api.baseUrl;
 
 // Helper function to get token from localStorage
 export function getToken() {
@@ -27,7 +29,7 @@ async function apiRequest(endpoint, options = {}) {
     defaultOptions.headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const config = {
+  const requestConfig = {
     ...defaultOptions,
     ...options,
     headers: {
@@ -37,7 +39,7 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(url, requestConfig);
     
     // Check if response has content before trying to parse as JSON
     const contentType = response.headers.get('content-type');
@@ -93,7 +95,7 @@ export const api = {
 
   // Calculate rate
   calculateRate: async (rateData) => {
-    return apiRequest('/api/calculate-rate', {
+    return apiRequest('/api/shipping/quote', {
       method: 'POST',
       body: JSON.stringify(rateData),
     });

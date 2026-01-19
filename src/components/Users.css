@@ -1,14 +1,6 @@
 .users-page {
   width: 100%;
-  margin-left: 250px;
-  padding: 40px;
-  min-height: 100vh;
   background-color: #f5f7fa;
-  transition: margin-left 0.3s ease;
-}
-
-.users-page.sidebar-collapsed {
-  margin-left: 70px;
 }
 
 .users-container {
@@ -230,12 +222,6 @@
 }
 
 @media (max-width: 768px) {
-  .users-page,
-  .users-page.sidebar-collapsed {
-    margin-left: 0;
-    padding: 20px;
-  }
-
   .users-table-container {
     overflow-x: scroll;
   }

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useSidebar } from '../contexts/SidebarContext';
 import { api } from '../services/api';
 import './PendingApprovals.css';
 
 function PendingApprovals() {
-  const { isCollapsed } = useSidebar();
   const [signups, setSignups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,7 +80,7 @@ function PendingApprovals() {
   };
 
   return (
-    <div className={`pending-approvals ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="pending-approvals">
       <div className="approvals-container">
         <div className="approvals-header">
           <div className="header-content">

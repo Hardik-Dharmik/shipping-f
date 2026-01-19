@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useSidebar } from '../contexts/SidebarContext';
 import { api } from '../services/api';
 import './Users.css';
 
 function Users() {
-  const { isCollapsed } = useSidebar();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,7 +68,7 @@ function Users() {
   };
 
   return (
-    <div className={`users-page ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="users-page">
       <div className="users-container">
         <div className="users-header">
           <div>

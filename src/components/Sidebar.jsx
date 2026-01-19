@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useAuth } from '../contexts/AuthContext';
+import config from '../config/env.js';
 import './Sidebar.css';
 
 function Sidebar() {
@@ -9,6 +11,14 @@ function Sidebar() {
   const navigate = useNavigate();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { logout, user, isAdmin } = useAuth();
+  const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
+
+  // Auto-open orders menu if on orders page
+  useEffect(() => {
+    if (location.pathname.startsWith('/orders')) {
+      setOrdersMenuOpen(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -28,7 +38,7 @@ function Sidebar() {
             )}
           </svg>
         </button>
-        {!isCollapsed && <h2>Shipping</h2>}
+        {!isCollapsed && <h2>{config.app.name}</h2>}
       </div>
       <nav className="sidebar-nav">
         {!isAdmin && (
@@ -44,17 +54,50 @@ function Sidebar() {
               </svg>
               {!isCollapsed && <span>Rate Calculator</span>}
             </Link>
-            <Link 
-              to="/orders" 
-              className={`sidebar-link ${location.pathname === '/orders' ? 'active' : ''}`}
-              title={isCollapsed ? 'Orders' : ''}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-              </svg>
-              {!isCollapsed && <span>Orders</span>}
-            </Link>
+            <div className="sidebar-menu">
+              <button
+                className={`sidebar-menu-toggle ${location.pathname.startsWith('/orders') ? 'active' : ''}`}
+                onClick={() => !isCollapsed && setOrdersMenuOpen(!ordersMenuOpen)}
+                title={isCollapsed ? 'Orders' : ''}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                </svg>
+                {!isCollapsed && (
+                  <>
+                    <span>Orders</span>
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      className={`menu-arrow ${ordersMenuOpen ? 'open' : ''}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </>
+                )}
+              </button>
+              {!isCollapsed && (
+                <div className={`sidebar-submenu ${ordersMenuOpen ? 'open' : ''}`}>
+                  <Link 
+                    to="/orders/create" 
+                    className={`sidebar-submenu-link ${location.pathname === '/orders/create' ? 'active' : ''}`}
+                  >
+                    <span>Create Order</span>
+                  </Link>
+                  <Link 
+                    to="/orders/list" 
+                    className={`sidebar-submenu-link ${location.pathname === '/orders/list' ? 'active' : ''}`}
+                  >
+                    <span>Order List</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </>
         )}
         {isAdmin && (

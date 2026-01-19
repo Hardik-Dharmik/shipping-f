@@ -1,14 +1,6 @@
 .pending-approvals {
   width: 100%;
-  margin-left: 250px;
-  padding: 40px;
-  min-height: 100vh;
   background-color: #f5f7fa;
-  transition: margin-left 0.3s ease;
-}
-
-.pending-approvals.sidebar-collapsed {
-  margin-left: 70px;
 }
 
 .approvals-container {
@@ -373,12 +365,6 @@
 }
 
 @media (max-width: 768px) {
-  .pending-approvals,
-  .pending-approvals.sidebar-collapsed {
-    margin-left: 0;
-    padding: 20px;
-  }
-
   .approvals-header .header-content {
     flex-direction: column;
     align-items: stretch;

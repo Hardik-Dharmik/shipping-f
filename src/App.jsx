@@ -4,10 +4,12 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import RateCalculator from './components/RateCalculator';
 import Orders from './components/Orders';
+import CreateOrder from './components/CreateOrder';
 import PendingApprovals from './components/PendingApprovals';
 import Users from './components/Users';
 import './App.css';
@@ -120,41 +122,62 @@ function AppRoutes() {
             <SidebarProvider>
               <div className="app">
                 <Sidebar />
-                <Routes>
-                  <Route path="/" element={<DefaultRoute />} />
-                  <Route 
-                    path="/calculate-rate" 
-                    element={
-                      <UserRoute>
-                        <RateCalculator />
-                      </UserRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/orders" 
-                    element={
-                      <UserRoute>
-                        <Orders />
-                      </UserRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin/signups/pending" 
-                    element={
-                      <AdminRoute>
-                        <PendingApprovals />
-                      </AdminRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin/users" 
-                    element={
-                      <AdminRoute>
-                        <Users />
-                      </AdminRoute>
-                    } 
-                  />
-                </Routes>
+                <div className="app-content">
+                  <Header />
+                  <main className="main-content">
+                    <Routes>
+                      <Route path="/" element={<DefaultRoute />} />
+                      <Route 
+                        path="/calculate-rate" 
+                        element={
+                          <UserRoute>
+                            <RateCalculator />
+                          </UserRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/orders/create" 
+                        element={
+                          <UserRoute>
+                            <CreateOrder />
+                          </UserRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/orders/list" 
+                        element={
+                          <UserRoute>
+                            <Orders />
+                          </UserRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/orders" 
+                        element={
+                          <UserRoute>
+                            <Navigate to="/orders/list" replace />
+                          </UserRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/admin/signups/pending" 
+                        element={
+                          <AdminRoute>
+                            <PendingApprovals />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/admin/users" 
+                        element={
+                          <AdminRoute>
+                            <Users />
+                          </AdminRoute>
+                        } 
+                      />
+                    </Routes>
+                  </main>
+                </div>
               </div>
             </SidebarProvider>
           </ProtectedRoute>

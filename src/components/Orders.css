@@ -1,13 +1,6 @@
 .orders {
-  margin-left: 250px;
-  padding: 40px;
-  min-height: 100vh;
+  width: 100%;
   background-color: #f5f7fa;
-  transition: margin-left 0.3s ease;
-}
-
-.orders.sidebar-collapsed {
-  margin-left: 70px;
 }
 
 .orders-container {
@@ -27,12 +20,6 @@
 }
 
 @media (max-width: 768px) {
-  .orders,
-  .orders.sidebar-collapsed {
-    margin-left: 0;
-    padding: 20px;
-  }
-
   .orders-container {
     padding: 20px;
   }
