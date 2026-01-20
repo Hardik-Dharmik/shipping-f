@@ -3,15 +3,15 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import RateCalculator from './components/RateCalculator';
-import Orders from './components/Orders';
-import CreateOrder from './components/CreateOrder';
-import PendingApprovals from './components/PendingApprovals';
-import Users from './components/Users';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import Login from './components/auth/Login';
+import Signup from './components/auth/Signup';
+import RateCalculator from './components/shipping/RateCalculator';
+import Orders from './components/orders/Orders';
+import CreateOrder from './components/orders/CreateOrder';
+import PendingApprovals from './components/admin/PendingApprovals';
+import Users from './components/admin/Users';
 import './App.css';
 
 // Protected Route Component
