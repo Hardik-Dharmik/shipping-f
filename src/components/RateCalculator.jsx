@@ -31,12 +31,23 @@ function RateCalculator() {
     pickupPincode: '',
     destinationCountry: '',
     destinationPincode: '',
-    actualWeight: '',
-    length: '',
-    breadth: '',
-    height: '',
     shipmentValue: ''
   });
+
+  // Boxes array - each box has weight and dimensions
+  const [boxes, setBoxes] = useState([
+    {
+      id: 1,
+      quantity: 1,
+      actualWeight: '',
+      length: '',
+      breadth: '',
+      height: ''
+    }
+  ]);
+
+  const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'pound'
+  const [dimensionUnit, setDimensionUnit] = useState('cm'); // 'cm' or 'inches'
 
   const [pickupDropdownOpen, setPickupDropdownOpen] = useState(false);
   const [destinationDropdownOpen, setDestinationDropdownOpen] = useState(false);
@@ -85,6 +96,88 @@ function RateCalculator() {
     return CITY_NAME_COUNTRIES.includes(country.toUpperCase());
   };
 
+  // Calculate volumetric weight for a single box
+  const calculateBoxVolumetricWeight = (box) => {
+    const length = parseFloat(box.length);
+    const breadth = parseFloat(box.breadth);
+    const height = parseFloat(box.height);
+
+    if (!length || !breadth || !height) {
+      return 0;
+    }
+
+    if (dimensionUnit === 'cm') {
+      // Formula: L×b×h÷5000 (result in kg)
+      return (length * breadth * height) / 5000;
+    } else {
+      // Formula: L×b×h÷306 (result in pounds)
+      return (length * breadth * height) / 306;
+    }
+  };
+
+  // Get applicable weight for a single box (maximum of actual and volumetric) multiplied by quantity
+  const getBoxApplicableWeight = (box) => {
+    const quantity = parseInt(box.quantity) || 1;
+    const actual = parseFloat(box.actualWeight) || 0;
+    const volumetric = calculateBoxVolumetricWeight(box);
+    return Math.max(actual, volumetric) * quantity;
+  };
+
+  // Calculate total actual weight across all boxes (accounting for quantity)
+  const getTotalActualWeight = () => {
+    return boxes.reduce((total, box) => {
+      const quantity = parseInt(box.quantity) || 1;
+      const weight = parseFloat(box.actualWeight) || 0;
+      return total + (weight * quantity);
+    }, 0);
+  };
+
+  // Calculate total volumetric weight across all boxes (accounting for quantity)
+  const getTotalVolumetricWeight = () => {
+    return boxes.reduce((total, box) => {
+      const quantity = parseInt(box.quantity) || 1;
+      const volumetric = calculateBoxVolumetricWeight(box);
+      return total + (volumetric * quantity);
+    }, 0);
+  };
+
+  // Get total applicable weight (sum of max weight from each box type)
+  // For each box: take max(actual per box, volumetric per box) × quantity, then sum all boxes
+  const getTotalApplicableWeight = () => {
+    return boxes.reduce((total, box) => {
+      return total + getBoxApplicableWeight(box);
+    }, 0);
+  };
+
+  // Add a new box
+  const addBox = () => {
+    const newId = Math.max(...boxes.map(b => b.id), 0) + 1;
+    setBoxes([...boxes, {
+      id: newId,
+      quantity: 1,
+      actualWeight: '',
+      length: '',
+      breadth: '',
+      height: ''
+    }]);
+  };
+
+  // Remove a box
+  const removeBox = (boxId) => {
+    if (boxes.length > 1) {
+      setBoxes(boxes.filter(box => box.id !== boxId));
+    } else {
+      toast.warning('At least one box is required');
+    }
+  };
+
+  // Update a specific box field
+  const updateBox = (boxId, field, value) => {
+    setBoxes(boxes.map(box => 
+      box.id === boxId ? { ...box, [field]: value } : box
+    ));
+  };
+
   const getPickupFieldLabel = () => {
     return requiresCityName(formData.pickupCountry) ? 'Pickup City Name *' : 'Pickup Pin Code *';
   };
@@ -131,16 +224,53 @@ function RateCalculator() {
     setResult(null);
 
     try {
+      // Get total applicable weight
+      const totalApplicableWeight = getTotalApplicableWeight();
+      
+      // Convert weight to kg if needed (API expects kg)
+      let weightInKg = totalApplicableWeight;
+      if (weightUnit === 'pound') {
+        weightInKg = totalApplicableWeight * 0.453592; // Convert pounds to kg
+      }
+
+      // Prepare boxes data for API - convert all dimensions to cm
+      const boxesData = boxes.map(box => {
+        let lengthInCm = box.length ? parseFloat(box.length) : null;
+        let breadthInCm = box.breadth ? parseFloat(box.breadth) : null;
+        let heightInCm = box.height ? parseFloat(box.height) : null;
+        
+        if (dimensionUnit === 'inches') {
+          if (lengthInCm) lengthInCm = lengthInCm * 2.54;
+          if (breadthInCm) breadthInCm = breadthInCm * 2.54;
+          if (heightInCm) heightInCm = heightInCm * 2.54;
+        }
+
+        // Calculate box applicable weight (per unit)
+        const quantity = parseInt(box.quantity) || 1;
+        const boxActual = parseFloat(box.actualWeight) || 0;
+        const boxVolumetric = calculateBoxVolumetricWeight(box);
+        let boxWeightPerUnitInKg = Math.max(boxActual, boxVolumetric);
+        if (weightUnit === 'pound') {
+          boxWeightPerUnitInKg = boxWeightPerUnitInKg * 0.453592;
+        }
+
+        return {
+          quantity: quantity,
+          actualWeight: boxWeightPerUnitInKg * quantity, // Total weight for all boxes of this type
+          length: lengthInCm,
+          breadth: breadthInCm,
+          height: heightInCm
+        };
+      });
+
       // Prepare data for API
       const rateData = {
         pickupCountry: formData.pickupCountry,
         pickupPincode: formData.pickupPincode,
         destinationCountry: formData.destinationCountry,
         destinationPincode: formData.destinationPincode,
-        actualWeight: parseFloat(formData.actualWeight),
-        length: formData.length ? parseFloat(formData.length) : null,
-        breadth: formData.breadth ? parseFloat(formData.breadth) : null,
-        height: formData.height ? parseFloat(formData.height) : null,
+        actualWeight: weightInKg, // Total applicable weight converted to kg
+        boxes: boxesData, // Array of boxes with individual weights and dimensions
         shipmentValue: parseFloat(formData.shipmentValue)
       };
 
@@ -175,12 +305,18 @@ function RateCalculator() {
       pickupPincode: '',
       destinationCountry: '',
       destinationPincode: '',
+      shipmentValue: ''
+    });
+    setBoxes([{
+      id: 1,
+      quantity: 1,
       actualWeight: '',
       length: '',
       breadth: '',
-      height: '',
-      shipmentValue: ''
-    });
+      height: ''
+    }]);
+    setWeightUnit('kg');
+    setDimensionUnit('cm');
     setPickupSearchQuery('');
     setDestinationSearchQuery('');
     setPickupDropdownOpen(false);
@@ -357,20 +493,6 @@ function RateCalculator() {
             <h2>Shipment Details</h2>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="actualWeight">Actual Weight (kg) *</label>
-                <input
-                  type="number"
-                  id="actualWeight"
-                  name="actualWeight"
-                  value={formData.actualWeight}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter weight in kg"
-                />
-              </div>
-              <div className="form-group">
                 <label htmlFor="shipmentValue">Shipment Value ({getCurrencyName()}) *</label>
                 <input
                   type="number"
@@ -384,52 +506,246 @@ function RateCalculator() {
                   placeholder={`Enter shipment value in ${getCurrencyName()}`}
                 />
               </div>
+              <div className="form-group">
+                <label>Units</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={weightUnit}
+                    onChange={(e) => {
+                      setWeightUnit(e.target.value);
+                      // Auto-update dimension unit to match
+                      setDimensionUnit(e.target.value === 'kg' ? 'cm' : 'inches');
+                    }}
+                    style={{
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    <option value="kg">Weight: kg, Dimensions: cm</option>
+                    <option value="pound">Weight: lb, Dimensions: inches</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="form-section">
-            <h2>Dimensions (cm)</h2>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="length">Length</label>
-                <input
-                  type="number"
-                  id="length"
-                  name="length"
-                  value={formData.length}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter length"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="breadth">Breadth</label>
-                <input
-                  type="number"
-                  id="breadth"
-                  name="breadth"
-                  value={formData.breadth}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter breadth"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="height">Height</label>
-                <input
-                  type="number"
-                  id="height"
-                  name="height"
-                  value={formData.height}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter height"
-                />
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Boxes</h2>
+              <button
+                type="button"
+                onClick={addBox}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                + Add Box
+              </button>
             </div>
+
+            {boxes.map((box, index) => (
+              <div key={box.id} style={{
+                marginBottom: '20px',
+                padding: '20px',
+                border: '1px solid #e9ecef',
+                borderRadius: '8px',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', color: '#34495e' }}>
+                    Box {index + 1}
+                    {parseInt(box.quantity) > 1 && (
+                      <span style={{ fontSize: '14px', color: '#7f8c8d', fontWeight: 'normal', marginLeft: '8px' }}>
+                        (Qty: {box.quantity})
+                      </span>
+                    )}
+                  </h3>
+                  {boxes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeBox(box.id)}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#e74c3c',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="form-row" style={{ marginBottom: '15px' }}>
+                  <div className="form-group">
+                    <label>Quantity *</label>
+                    <input
+                      type="number"
+                      value={box.quantity}
+                      onChange={(e) => updateBox(box.id, 'quantity', e.target.value)}
+                      required
+                      min="1"
+                      step="1"
+                      placeholder="Enter quantity"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Actual Weight per Box ({weightUnit}) *</label>
+                    <input
+                      type="number"
+                      value={box.actualWeight}
+                      onChange={(e) => updateBox(box.id, 'actualWeight', e.target.value)}
+                      required
+                      min="0"
+                      step="0.01"
+                      placeholder={`Enter weight per box in ${weightUnit}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Length ({dimensionUnit})</label>
+                    <input
+                      type="number"
+                      value={box.length}
+                      onChange={(e) => updateBox(box.id, 'length', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      placeholder={`Enter length in ${dimensionUnit}`}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Breadth ({dimensionUnit})</label>
+                    <input
+                      type="number"
+                      value={box.breadth}
+                      onChange={(e) => updateBox(box.id, 'breadth', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      placeholder={`Enter breadth in ${dimensionUnit}`}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Height ({dimensionUnit})</label>
+                    <input
+                      type="number"
+                      value={box.height}
+                      onChange={(e) => updateBox(box.id, 'height', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      placeholder={`Enter height in ${dimensionUnit}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Individual box weight calculation */}
+                {(box.actualWeight || (box.length && box.breadth && box.height)) && (
+                  <div style={{
+                    marginTop: '15px',
+                    padding: '12px',
+                    backgroundColor: 'white',
+                    borderRadius: '6px',
+                    border: '1px solid #dee2e6'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ color: '#7f8c8d', fontWeight: '500' }}>Quantity:</span>
+                        <span style={{ fontWeight: '600', color: '#34495e' }}>
+                          {parseInt(box.quantity) || 1} box{parseInt(box.quantity) !== 1 ? 'es' : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#7f8c8d' }}>Actual (per box):</span>
+                        <span style={{ fontWeight: '500' }}>
+                          {box.actualWeight ? `${parseFloat(box.actualWeight).toFixed(2)} ${weightUnit}` : 'Not entered'}
+                        </span>
+                      </div>
+                      {box.length && box.breadth && box.height && (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#7f8c8d' }}>Volumetric (per box):</span>
+                            <span style={{ fontWeight: '500' }}>
+                              {calculateBoxVolumetricWeight(box).toFixed(2)} {weightUnit}
+                            </span>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            paddingTop: '6px',
+                            borderTop: '1px solid #dee2e6',
+                            marginTop: '4px',
+                            fontWeight: '600',
+                            color: '#27ae60'
+                          }}>
+                            <span>Total Applicable Weight ({parseInt(box.quantity) || 1} box{parseInt(box.quantity) !== 1 ? 'es' : ''}):</span>
+                            <span>{getBoxApplicableWeight(box).toFixed(2)} {weightUnit}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Total Weight Display Section */}
+            {(getTotalActualWeight() > 0 || getTotalVolumetricWeight() > 0) && (
+              <div className="weight-display" style={{
+                marginTop: '20px',
+                padding: '15px',
+                backgroundColor: '#e8f5e9',
+                borderRadius: '6px',
+                border: '2px solid #27ae60'
+              }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#27ae60', fontWeight: '600' }}>Total Weight Calculation</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#34495e', fontWeight: '500' }}>Total Actual Weight:</span>
+                    <span style={{ fontWeight: '600', color: '#2c3e50', fontSize: '16px' }}>
+                      {getTotalActualWeight().toFixed(2)} {weightUnit}
+                    </span>
+                  </div>
+                  {getTotalVolumetricWeight() > 0 && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#34495e', fontWeight: '500' }}>Total Volumetric Weight:</span>
+                        <span style={{ fontWeight: '600', color: '#2c3e50', fontSize: '16px' }}>
+                          {getTotalVolumetricWeight().toFixed(2)} {weightUnit}
+                        </span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '10px',
+                        borderTop: '2px solid #27ae60',
+                        marginTop: '8px'
+                      }}>
+                        <span style={{ fontWeight: '700', color: '#27ae60', fontSize: '16px' }}>Total Applicable Weight (Sum of Max per Box):</span>
+                        <span style={{ fontWeight: '700', fontSize: '20px', color: '#27ae60' }}>
+                          {getTotalApplicableWeight().toFixed(2)} {weightUnit}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">

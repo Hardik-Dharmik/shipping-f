@@ -58,7 +58,7 @@ function Header() {
   return (
     <header className={`header ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="header-content">
-        <h1 className="header-title">{getPageTitle()}</h1>
+        <h1 className="header-title"></h1>
         {user && (
           <div className="header-user" ref={dropdownRef}>
             <button 
