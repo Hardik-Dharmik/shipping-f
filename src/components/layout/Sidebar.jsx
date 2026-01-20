@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useAuth } from '../contexts/AuthContext';
-import config from '../config/env.js';
+import { useSidebar } from '../../contexts/SidebarContext';
+import { useAuth } from '../../contexts/AuthContext';
+import config from '../../config/env.js';
 import './Sidebar.css';
 
 function Sidebar() {

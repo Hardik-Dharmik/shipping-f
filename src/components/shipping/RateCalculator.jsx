@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../utils/currency';
-import { api } from '../services/api';
+import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
+import { api } from '../../services/api';
 import './RateCalculator.css';
 
 const COUNTRIES = [
