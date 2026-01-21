@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
+import { useNavigate, Link } from 'react-router-dom';
 import { formatCurrency, getCurrencyName } from '../../utils/currency';
 import './CreateOrder.css';
 
@@ -69,6 +70,8 @@ const calculateChargeableWeight = (actualWeight, length, breadth, height) => {
 };
 
 function CreateOrder() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     // Pickup fields
     pickupCompanyName: '',
@@ -260,11 +263,70 @@ function CreateOrder() {
     return currencies.size === 1 ? [...currencies][0] : null;
   };
 
-  const handleCreateOrder = (quote) => {
-    // TODO: Implement actual order creation API call
-    // For now, just show success message
-    toast.success('Order added');
+  const handleCreateOrder = async(selectedQuote) => {
+    // Prepare boxes
+    const boxes = packages.map(pkg => ({
+      quantity: 1,
+      actualWeight: Number(pkg.actualWeight),
+      length: Number(pkg.length),
+      breadth: Number(pkg.breadth),
+      height: Number(pkg.height)
+    }));
+  
+    // Calculate total chargeable weight
+    const actualWeight = boxes.reduce((sum, box) => {
+      const volumetric = (box.length * box.breadth * box.height) / 5000;
+      const chargeable = Math.max(box.actualWeight, volumetric);
+      return sum + chargeable;
+    }, 0);
+  
+    // Final object (EXACT format you asked)
+    const orderObject = {
+      pickupCountry: formData.pickupCountry,
+      pickupPincode: formData.pickupPincode,
+      destinationCountry: formData.deliveryCountry,
+      destinationPincode: formData.deliveryPincode,
+      actualWeight: Number(actualWeight.toFixed(2)),
+      boxes,
+      shipmentValue: calculateShipmentValue(),
+      carrier: {
+        name: selectedQuote.carrier,
+        cost: selectedQuote.cost,
+        currency: selectedQuote.currency,
+        estimatedDelivery: selectedQuote.estimatedDelivery,
+        estimatedDeliveryReadable: selectedQuote.estimatedDeliveryReadable
+      }
+    };
+  
+    // 🔥 LOG FINAL OBJECT
+    console.group('📦 FINAL ORDER OBJECT');
+    console.log(orderObject);
+    console.groupEnd();
+
+    try{
+      // Call create order API
+      const response = await api.createOrder(orderObject);
+      
+      if (response.success && response.data) {
+        toast.success('Shipment created successfully!');
+        handleReset(false);
+        setLoading(false);
+        setIsModalOpen(false);
+        navigate('/orders');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Shipment creation error:', error);
+      const errorMsg = error.message || 'Failed to create shipment. Please try again.';
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+      setIsModalOpen(false);
+    }
   };
+  
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -344,7 +406,7 @@ function CreateOrder() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = (showToast = true) => {
     setFormData({
       pickupCompanyName: '',
       pickupCountry: '',
@@ -382,8 +444,9 @@ function CreateOrder() {
     setRateResult(null);
     setRateError(null);
     setIsModalOpen(false);
-  
-    toast.info('Form reset successfully');
+    if (showToast) {
+      toast.info('Form reset successfully');
+    }
   };
   
 

@@ -101,6 +101,19 @@ export const api = {
     });
   },
 
+  createOrder: async (orderData) => {
+    return apiRequest('/api/shipping/order', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  },
+
+  getOrders: async () => {
+    return apiRequest('/api/shipping/orders', {
+      method: 'GET',
+    });
+  },
+
   // Get pending signups
   getPendingSignups: async () => {
     return apiRequest('/api/admin/pending', {

@@ -1,27 +1,126 @@
-.orders {
+.orders-page {
+  padding: 30px;
   width: 100%;
-  background-color: #f5f7fa;
 }
 
 .orders-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 40px;
 }
 
-.orders-container h1 {
-  margin: 0 0 20px 0;
+.orders-header {
+  margin-bottom: 30px;
+}
+
+.orders-header h1 {
+  margin: 0 0 8px 0;
   color: #2c3e50;
   font-size: 32px;
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
-  .orders-container {
-    padding: 20px;
-  }
+.orders-header .subtitle {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 16px;
 }
 
+.orders-table-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table thead {
+  background-color: #f8f9fa;
+}
+
+.orders-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.orders-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.orders-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.orders-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.awb {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* Reuse same badge styles */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-created {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Reuse file link style */
+.file-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.file-link:hover {
+  text-decoration: underline;
+}
+
+.no-file {
+  color: #bdc3c7;
+  font-style: italic;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .orders-table {
+    min-width: 1100px;
+  }
+}
