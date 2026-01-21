@@ -25,6 +25,37 @@ const COUNTRIES = [
 // Countries that use city name instead of pincode
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
 
+const CURRENCY_SYMBOLS = {
+  AED: 'د.إ',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+  SAR: '﷼',
+  CAD: '$',
+  AUD: '$',
+  CNY: '¥',
+  KRW: '₩'
+};
+
+const getCurrencySymbol = (code = 'AED') => {
+  return CURRENCY_SYMBOLS[code] || code;
+};
+
+
+const PRODUCT_CURRENCIES = [
+  { code: 'AED', label: 'AED' },
+  { code: 'USD', label: 'USD' },
+  { code: 'EUR', label: 'EUR' },
+  { code: 'GBP', label: 'GBP' },
+  { code: 'INR', label: 'INR' },
+  { code: 'SAR', label: 'SAR' },
+  { code: 'CAD', label: 'CAD' },
+  { code: 'AUD', label: 'AUD' },
+  { code: 'CNY', label: 'CNY' },
+  { code: 'KRW', label: 'KRW' }
+];
+
 // Calculate volumetric weight: (length × breadth × height) / 5000
 const calculateVolumetricWeight = (length, breadth, height) => {
   if (!length || !breadth || !height) return 0;
@@ -63,19 +94,24 @@ function CreateOrder() {
     deliveryState: '',
     deliveryAlternateNo: '',
     deliveryEmail: '',
-    // Package details
-    actualWeight: '',
-    length: '',
-    breadth: '',
-    height: ''
   });
 
   const [products, setProducts] = useState([
     {
       id: 1,
       name: '',
+      currency: 'AED',
       unitPrice: '',
       quantity: ''
+    }
+  ]);
+  const [packages, setPackages] = useState([
+    {
+      id: 1,
+      actualWeight: '',
+      length: '',
+      breadth: '',
+      height: ''
     }
   ]);
   const [errors, setErrors] = useState({});
@@ -192,18 +228,20 @@ function CreateOrder() {
     });
 
     // Validate package details
-    if (!formData.actualWeight || parseFloat(formData.actualWeight) <= 0) {
-      newErrors.actualWeight = 'Actual weight must be greater than 0';
-    }
-    if (!formData.length || parseFloat(formData.length) <= 0) {
-      newErrors.length = 'Length must be greater than 0';
-    }
-    if (!formData.breadth || parseFloat(formData.breadth) <= 0) {
-      newErrors.breadth = 'Breadth must be greater than 0';
-    }
-    if (!formData.height || parseFloat(formData.height) <= 0) {
-      newErrors.height = 'Height must be greater than 0';
-    }
+    packages.forEach((pkg) => {
+      if (!pkg.actualWeight || parseFloat(pkg.actualWeight) <= 0) {
+        newErrors[`package_${pkg.id}_actualWeight`] = 'Actual weight must be greater than 0';
+      }
+      if (!pkg.length || parseFloat(pkg.length) <= 0) {
+        newErrors[`package_${pkg.id}_length`] = 'Length must be greater than 0';
+      }
+      if (!pkg.breadth || parseFloat(pkg.breadth) <= 0) {
+        newErrors[`package_${pkg.id}_breadth`] = 'Breadth must be greater than 0';
+      }
+      if (!pkg.height || parseFloat(pkg.height) <= 0) {
+        newErrors[`package_${pkg.id}_height`] = 'Height must be greater than 0';
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -215,6 +253,11 @@ function CreateOrder() {
       const qty = parseInt(product.quantity) || 0;
       return total + (price * qty);
     }, 0);
+  };
+
+  const getSelectedCurrency = () => {
+    const currencies = new Set(products.map(p => p.currency || 'AED'));
+    return currencies.size === 1 ? [...currencies][0] : null;
   };
 
   const handleCreateOrder = (quote) => {
@@ -238,14 +281,31 @@ function CreateOrder() {
     try {
       // Calculate shipment value from products
       const shipmentValue = calculateShipmentValue();
+      const selectedCurrency = getSelectedCurrency();
+      if (!selectedCurrency) {
+        toast.info('Multiple currencies selected. Using the first product currency for rate calculation.');
+      }
       
-      // Get chargeable weight
-      const chargeableWeight = calculateChargeableWeight(
-        parseFloat(formData.actualWeight),
-        parseFloat(formData.length),
-        parseFloat(formData.breadth),
-        parseFloat(formData.height)
-      );
+      // Compute package weights
+      const packageSummaries = packages.map((pkg) => {
+        const actual = parseFloat(pkg.actualWeight) || 0;
+        const length = parseFloat(pkg.length) || 0;
+        const breadth = parseFloat(pkg.breadth) || 0;
+        const height = parseFloat(pkg.height) || 0;
+        const volumetric = calculateVolumetricWeight(length, breadth, height);
+        const chargeable = Math.max(actual, volumetric);
+        return {
+          id: pkg.id,
+          actual,
+          length,
+          breadth,
+          height,
+          volumetric,
+          chargeable
+        };
+      });
+
+      const totalChargeableWeight = packageSummaries.reduce((sum, pkg) => sum + pkg.chargeable, 0);
 
       // Prepare rate calculation data
       const rateData = {
@@ -253,14 +313,14 @@ function CreateOrder() {
         pickupPincode: formData.pickupPincode,
         destinationCountry: formData.deliveryCountry,
         destinationPincode: formData.deliveryPincode,
-        actualWeight: chargeableWeight,
-        boxes: [{
+        actualWeight: totalChargeableWeight,
+        boxes: packageSummaries.map(pkg => ({
           quantity: 1,
-          actualWeight: chargeableWeight,
-          length: parseFloat(formData.length),
-          breadth: parseFloat(formData.breadth),
-          height: parseFloat(formData.height)
-        }],
+          actualWeight: pkg.chargeable,
+          length: pkg.length,
+          breadth: pkg.breadth,
+          height: pkg.height
+        })),
         shipmentValue: shipmentValue
       };
 
@@ -283,6 +343,49 @@ function CreateOrder() {
       setLoading(false);
     }
   };
+
+  const handleReset = () => {
+    setFormData({
+      pickupCompanyName: '',
+      pickupCountry: '',
+      pickupPincode: '',
+      pickupMobileNo: '',
+      pickupFullName: '',
+      pickupCompleteAddress: '',
+      pickupLandmark: '',
+      pickupCity: '',
+      pickupState: '',
+      pickupAlternateNo: '',
+      pickupEmail: '',
+      deliveryCompanyName: '',
+      deliveryCountry: '',
+      deliveryPincode: '',
+      deliveryMobileNo: '',
+      deliveryFullName: '',
+      deliveryCompleteAddress: '',
+      deliveryLandmark: '',
+      deliveryCity: '',
+      deliveryState: '',
+      deliveryAlternateNo: '',
+      deliveryEmail: '',
+    });
+  
+    setProducts([
+      { id: 1, name: '', currency: 'AED', unitPrice: '', quantity: '' }
+    ]);
+  
+    setPackages([
+      { id: 1, actualWeight: '', length: '', breadth: '', height: '' }
+    ]);
+  
+    setErrors({});
+    setRateResult(null);
+    setRateError(null);
+    setIsModalOpen(false);
+  
+    toast.info('Form reset successfully');
+  };
+  
 
   const renderAddressSection = (prefix, title) => {
     const country = formData[`${prefix}Country`];
@@ -522,10 +625,50 @@ function CreateOrder() {
       {
         id: newId,
         name: '',
+        currency: 'AED',
         unitPrice: '',
         quantity: ''
       }
     ]);
+  };
+
+  const handlePackageChange = (packageId, field, value) => {
+    setPackages(prev =>
+      prev.map(pkg =>
+        pkg.id === packageId ? { ...pkg, [field]: value } : pkg
+      )
+    );
+    const errorKey = `package_${packageId}_${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => ({
+        ...prev,
+        [errorKey]: ''
+      }));
+    }
+  };
+
+  const addPackage = () => {
+    const newId = Math.max(...packages.map(p => p.id), 0) + 1;
+    setPackages(prev => [
+      ...prev,
+      {
+        id: newId,
+        actualWeight: '',
+        length: '',
+        breadth: '',
+        height: ''
+      }
+    ]);
+  };
+
+  const removePackage = (packageId) => {
+    if (packages.length > 1) {
+      setPackages(prev => prev.filter(pkg => pkg.id !== packageId));
+      const packageErrors = Object.keys(errors).filter(key => key.startsWith(`package_${packageId}_`));
+      const newErrors = { ...errors };
+      packageErrors.forEach(key => delete newErrors[key]);
+      setErrors(newErrors);
+    }
   };
 
   const removeProduct = (productId) => {
@@ -544,17 +687,6 @@ function CreateOrder() {
       <div className="product-section">
         <div className="product-section-header">
           <h2 className="section-title">Product Details</h2>
-          <button
-            type="button"
-            onClick={addProduct}
-            className="btn-add-product"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Product
-          </button>
         </div>
 
         {products.map((product, index) => (
@@ -597,16 +729,28 @@ function CreateOrder() {
                 <label htmlFor={`product_${product.id}_unitPrice`}>
                   Unit Price <span className="required">*</span>
                 </label>
-                <input
-                  type="number"
-                  id={`product_${product.id}_unitPrice`}
-                  value={product.unitPrice}
-                  onChange={(e) => handleProductChange(product.id, 'unitPrice', e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  className={errors[`product_${product.id}_unitPrice`] ? 'error' : ''}
-                />
+                <div className="currency-input-group">
+                  <select
+                    aria-label="Currency"
+                    value={product.currency || 'AED'}
+                    onChange={(e) => handleProductChange(product.id, 'currency', e.target.value)}
+                    className="currency-select"
+                  >
+                    {PRODUCT_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.label} ({getCurrencySymbol(c.code)})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    id={`product_${product.id}_unitPrice`}
+                    value={product.unitPrice}
+                    onChange={(e) => handleProductChange(product.id, 'unitPrice', e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className={errors[`product_${product.id}_unitPrice`] ? 'error' : ''}
+                  />
+                </div>
                 {errors[`product_${product.id}_unitPrice`] && (
                   <span className="error-message">{errors[`product_${product.id}_unitPrice`]}</span>
                 )}
@@ -635,8 +779,10 @@ function CreateOrder() {
                 <div className="form-group">
                   <label>Total</label>
                   <div className="product-total">
+                    {getCurrencySymbol(product.currency)}
                     {(parseFloat(product.unitPrice) * parseInt(product.quantity) || 0).toFixed(2)}
                   </div>
+
                 </div>
               )}
             </div>
@@ -647,122 +793,161 @@ function CreateOrder() {
   };
 
   const renderPackageSection = () => {
-    const actualWeight = parseFloat(formData.actualWeight) || 0;
-    const length = parseFloat(formData.length) || 0;
-    const breadth = parseFloat(formData.breadth) || 0;
-    const height = parseFloat(formData.height) || 0;
-    const volumetricWeight = calculateVolumetricWeight(length, breadth, height);
-    const chargeableWeight = calculateChargeableWeight(actualWeight, length, breadth, height);
+    const packageSummaries = packages.map(pkg => {
+      const actualWeight = parseFloat(pkg.actualWeight) || 0;
+      const length = parseFloat(pkg.length) || 0;
+      const breadth = parseFloat(pkg.breadth) || 0;
+      const height = parseFloat(pkg.height) || 0;
+      const volumetricWeight = calculateVolumetricWeight(length, breadth, height);
+      const chargeableWeight = calculateChargeableWeight(actualWeight, length, breadth, height);
+      return { id: pkg.id, actualWeight, length, breadth, height, volumetricWeight, chargeableWeight };
+    });
+
+    const totalChargeable = packageSummaries.reduce((sum, pkg) => sum + pkg.chargeableWeight, 0);
 
     return (
       <div className="package-section">
-        <h2 className="section-title">Package Details</h2>
-        
-        {/* Actual Weight Row */}
-        <div className="package-row">
-          <div className="form-group">
-            <label htmlFor="actualWeight">
-              Actual Weight (kg) <span className="required">*</span>
-            </label>
-            <input
-              type="number"
-              id="actualWeight"
-              name="actualWeight"
-              value={formData.actualWeight}
-              onChange={handleChange}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className={errors.actualWeight ? 'error' : ''}
-            />
-            {errors.actualWeight && (
-              <span className="error-message">{errors.actualWeight}</span>
+        <div className="package-section-header">
+          <h2 className="section-title">Package Details</h2>
+          <button
+            type="button"
+            onClick={addPackage}
+            className="btn-add-package"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Package
+          </button>
+        </div>
+
+        {packages.map((pkg, index) => (
+          <div key={pkg.id} className="package-item">
+            {packages.length > 1 && (
+              <div className="package-item-header">
+                <span className="package-item-number">Package {index + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removePackage(pkg.id)}
+                  className="btn-remove-package"
+                  aria-label="Remove package"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            <div className="package-row">
+              <div className="form-group">
+                <label htmlFor={`package_${pkg.id}_actualWeight`}>
+                  Actual Weight (kg) <span className="required">*</span>
+                </label>
+                <input
+                  type="number"
+                  id={`package_${pkg.id}_actualWeight`}
+                  value={pkg.actualWeight}
+                  onChange={(e) => handlePackageChange(pkg.id, 'actualWeight', e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className={errors[`package_${pkg.id}_actualWeight`] ? 'error' : ''}
+                />
+                {errors[`package_${pkg.id}_actualWeight`] && (
+                  <span className="error-message">{errors[`package_${pkg.id}_actualWeight`]}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="package-row">
+              <div className="form-grid dimensions-grid">
+                <div className="form-group">
+                  <label htmlFor={`package_${pkg.id}_length`}>
+                    Length (cm) <span className="required">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id={`package_${pkg.id}_length`}
+                    value={pkg.length}
+                    onChange={(e) => handlePackageChange(pkg.id, 'length', e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className={errors[`package_${pkg.id}_length`] ? 'error' : ''}
+                  />
+                  {errors[`package_${pkg.id}_length`] && (
+                    <span className="error-message">{errors[`package_${pkg.id}_length`]}</span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor={`package_${pkg.id}_breadth`}>
+                    Breadth (cm) <span className="required">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id={`package_${pkg.id}_breadth`}
+                    value={pkg.breadth}
+                    onChange={(e) => handlePackageChange(pkg.id, 'breadth', e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className={errors[`package_${pkg.id}_breadth`] ? 'error' : ''}
+                  />
+                  {errors[`package_${pkg.id}_breadth`] && (
+                    <span className="error-message">{errors[`package_${pkg.id}_breadth`]}</span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor={`package_${pkg.id}_height`}>
+                    Height (cm) <span className="required">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id={`package_${pkg.id}_height`}
+                    value={pkg.height}
+                    onChange={(e) => handlePackageChange(pkg.id, 'height', e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className={errors[`package_${pkg.id}_height`] ? 'error' : ''}
+                  />
+                  {errors[`package_${pkg.id}_height`] && (
+                    <span className="error-message">{errors[`package_${pkg.id}_height`]}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {(pkg.actualWeight || (pkg.length && pkg.breadth && pkg.height)) && (
+              <div className="package-calculations">
+                <div className="calculation-row">
+                  <span className="calculation-label">Actual Weight:</span>
+                  <span className="calculation-value">{packageSummaries.find(p => p.id === pkg.id)?.actualWeight.toFixed(2) || '0.00'} kg</span>
+                </div>
+                <div className="calculation-row">
+                  <span className="calculation-label">Volumetric Weight:</span>
+                  <span className="calculation-value">{packageSummaries.find(p => p.id === pkg.id)?.volumetricWeight.toFixed(2) || '0.00'} kg</span>
+                </div>
+                <div className="calculation-row chargeable">
+                  <span className="calculation-label">Chargeable Weight:</span>
+                  <span className="calculation-value">{packageSummaries.find(p => p.id === pkg.id)?.chargeableWeight.toFixed(2) || '0.00'} kg</span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        ))}
 
-        {/* Dimensions Row */}
-        <div className="package-row">
-          <div className="form-grid dimensions-grid">
-            <div className="form-group">
-              <label htmlFor="length">
-                Length (cm) <span className="required">*</span>
-              </label>
-              <input
-                type="number"
-                id="length"
-                name="length"
-                value={formData.length}
-                onChange={handleChange}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className={errors.length ? 'error' : ''}
-              />
-              {errors.length && (
-                <span className="error-message">{errors.length}</span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="breadth">
-                Breadth (cm) <span className="required">*</span>
-              </label>
-              <input
-                type="number"
-                id="breadth"
-                name="breadth"
-                value={formData.breadth}
-                onChange={handleChange}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className={errors.breadth ? 'error' : ''}
-              />
-              {errors.breadth && (
-                <span className="error-message">{errors.breadth}</span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="height">
-                Height (cm) <span className="required">*</span>
-              </label>
-              <input
-                type="number"
-                id="height"
-                name="height"
-                value={formData.height}
-                onChange={handleChange}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className={errors.height ? 'error' : ''}
-              />
-              {errors.height && (
-                <span className="error-message">{errors.height}</span>
-              )}
-            </div>
+        <div className="package-total">
+          <div className="calculation-row chargeable">
+            <span className="calculation-label">Total Chargeable Weight:</span>
+            <span className="calculation-value">{totalChargeable.toFixed(2)} kg</span>
           </div>
         </div>
-
-        {(actualWeight > 0 || (length > 0 && breadth > 0 && height > 0)) && (
-          <div className="package-calculations">
-            <div className="calculation-row">
-              <span className="calculation-label">Actual Weight:</span>
-              <span className="calculation-value">{actualWeight.toFixed(2)} kg</span>
-            </div>
-            <div className="calculation-row">
-              <span className="calculation-label">Volumetric Weight:</span>
-              <span className="calculation-value">{volumetricWeight.toFixed(2)} kg</span>
-            </div>
-            <div className="calculation-row chargeable">
-              <span className="calculation-label">Chargeable Weight:</span>
-              <span className="calculation-value">{chargeableWeight.toFixed(2)} kg</span>
-              
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -782,6 +967,14 @@ function CreateOrder() {
           {renderPackageSection()}
 
           <div className="form-actions">
+            <button
+              type="button"
+              className="btn-submit"
+              onClick={handleReset}
+              disabled={loading}
+            >
+              Reset
+            </button>
             <button
               type="submit"
               className="btn-submit"
