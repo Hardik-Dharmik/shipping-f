@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
 import { api } from '../../services/api';
 import './RateCalculator.css';
+import ImportantNotes from './ImportantNotes';
 
 const COUNTRIES = [
   'UAE',
@@ -53,6 +54,8 @@ function RateCalculator() {
   const [destinationDropdownOpen, setDestinationDropdownOpen] = useState(false);
   const [pickupSearchQuery, setPickupSearchQuery] = useState('');
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('');
+  const [requireBOE, setRequireBOE] = useState(false);
+  const [requireDO, setRequireDO] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -271,7 +274,9 @@ function RateCalculator() {
         destinationPincode: formData.destinationPincode,
         actualWeight: weightInKg, // Total applicable weight converted to kg
         boxes: boxesData, // Array of boxes with individual weights and dimensions
-        shipmentValue: parseFloat(formData.shipmentValue)
+        shipmentValue: parseFloat(formData.shipmentValue),
+        requireBOE: requireBOE,
+        requireDO: requireDO,
       };
 
       const response = await api.calculateRate(rateData);
@@ -319,6 +324,8 @@ function RateCalculator() {
     setDimensionUnit('cm');
     setPickupSearchQuery('');
     setDestinationSearchQuery('');
+    setRequireBOE(false);
+    setRequireDO(false);
     setPickupDropdownOpen(false);
     setDestinationDropdownOpen(false);
     setResult(null);
@@ -748,6 +755,55 @@ function RateCalculator() {
             )}
           </div>
 
+          <div className="form-section">
+            <h2>Additional Services</h2>
+            <div className="form-row" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div className="checkbox-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  id="requireBOE"
+                  checked={requireBOE}
+                  onChange={(e) => setRequireBOE(e.target.checked)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="requireBOE" style={{ cursor: 'pointer', fontSize: '15px' }}>
+                  REQUIRE BOE (Optional - 100 AED)
+                </label>
+              </div>
+              <div className="checkbox-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="checkbox"
+                  id="requireDO"
+                  checked={requireDO}
+                  onChange={(e) => setRequireDO(e.target.checked)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="requireDO" style={{ cursor: 'pointer', fontSize: '15px' }}>
+                  REQUIRE D/O (Optional - 100 AED)
+                </label>
+              </div>
+              {formData.pickupCountry && formData.pickupCountry.toUpperCase() === 'UAE' && (
+                <div className="info-box" style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#e3f2fd', 
+                  border: '1px solid #90caf9', 
+                  borderRadius: '4px',
+                  color: '#0d47a1',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{ fontSize: '18px' }}>ℹ️</span>
+                  <span>
+                    <strong>EXPORT DECLARATION</strong> is mandatory for all export bookings from UAE. 
+                    (Additional charge: 120 AED)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="form-actions">
             <button type="button" onClick={handleReset} className="btn btn-reset">
               Reset
@@ -883,6 +939,7 @@ function RateCalculator() {
                 </div>
               </div>
             </div>
+            <ImportantNotes />
           </div>
         )}
       </div>

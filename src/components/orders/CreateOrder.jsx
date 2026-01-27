@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { formatCurrency, getCurrencyName } from '../../utils/currency';
 import './CreateOrder.css';
+import ImportantNotes from '../shipping/ImportantNotes';
 
 const COUNTRIES = [
   'UAE',
@@ -117,11 +118,36 @@ function CreateOrder() {
       height: ''
     }
   ]);
+  const [compliance, setCompliance] = useState({
+    requireBOE: false,
+    requireDO: false,
+    exportDeclaration: false,
+    dutyExemption: false
+  });
+
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [rateResult, setRateResult] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rateError, setRateError] = useState(null);
+
+  useEffect(() => {
+    if (
+      formData.pickupCountry === 'UAE' &&
+      formData.deliveryCountry &&
+      formData.deliveryCountry !== 'UAE'
+    ) {
+      setCompliance(prev => ({
+        ...prev,
+        exportDeclaration: true
+      }));
+    } else {
+      setCompliance(prev => ({
+        ...prev,
+        exportDeclaration: false
+      }));
+    }
+  }, [formData.pickupCountry, formData.deliveryCountry]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -279,8 +305,9 @@ function CreateOrder() {
       const chargeable = Math.max(box.actualWeight, volumetric);
       return sum + chargeable;
     }, 0);
+
+    const exportDeclarationCharge = compliance.exportDeclaration ? 120 : 0;
   
-    // Final object (EXACT format you asked)
     const orderObject = {
       pickupCountry: formData.pickupCountry,
       pickupPincode: formData.pickupPincode,
@@ -295,6 +322,13 @@ function CreateOrder() {
         currency: selectedQuote.currency,
         estimatedDelivery: selectedQuote.estimatedDelivery,
         estimatedDeliveryReadable: selectedQuote.estimatedDeliveryReadable
+      },
+      compliance: {
+        requireBOE: compliance.requireBOE,
+        requireDO: compliance.requireDO,
+        exportDeclaration: compliance.exportDeclaration,
+        exportDeclarationCharge,
+        dutyExemption: compliance.dutyExemption
       }
     };
   
@@ -1029,6 +1063,85 @@ function CreateOrder() {
           {renderProductSection()}
           {renderPackageSection()}
 
+          <div className="compliance-section">
+          <h3 className="section-title">Compliance & Declarations</h3>
+
+          <div className="checkbox-group">
+              <input
+                type="checkbox"
+                checked={compliance.requireBOE}
+                onChange={(e) =>
+                  setCompliance(prev => ({ ...prev, requireBOE: e.target.checked }))
+                }
+              />
+            <label htmlFor="">
+              REQUIRE BOE 
+            </label>
+          </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={compliance.requireDO}
+                onChange={(e) =>
+                  setCompliance(prev => ({ ...prev, requireDO: e.target.checked }))
+                }
+              />
+              REQUIRE D/O
+            </label>
+          </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={compliance.exportDeclaration}
+                disabled={
+                  formData.pickupCountry === 'UAE' &&
+                  formData.deliveryCountry &&
+                  formData.deliveryCountry !== 'UAE'
+                }
+              />
+              EXPORT DECLARATION (Mandatory for UAE exports)
+            </label>
+            {formData.pickupCountry === 'UAE' &&
+              formData.deliveryCountry &&
+              formData.deliveryCountry !== 'UAE' && (
+                <p className="charge-note">
+                  Charges: <strong>120 AED</strong>
+                </p>
+              )}
+          </div>
+
+          <div className="radio-group">
+            <label>DUTY EXEMPTION:</label>
+            <label>
+              <input
+                type="radio"
+                name="dutyExemption"
+                checked={compliance.dutyExemption === true}
+                onChange={() =>
+                  setCompliance(prev => ({ ...prev, dutyExemption: true }))
+                }
+              />
+              Yes
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="dutyExemption"
+                checked={compliance.dutyExemption === false}
+                onChange={() =>
+                  setCompliance(prev => ({ ...prev, dutyExemption: false }))
+                }
+              />
+              No
+            </label>
+          </div>
+        </div>
+
+
           <div className="form-actions">
             <button
               type="button"
@@ -1141,6 +1254,7 @@ function CreateOrder() {
                         </div>
                       </div>
                     )}
+                    <ImportantNotes style={{ marginTop: '15px', padding: '10px', fontSize: '0.75rem' }} />
                   </>
                 )}
               </div>

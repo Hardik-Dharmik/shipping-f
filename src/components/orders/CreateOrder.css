@@ -829,3 +829,23 @@
     justify-content: center;
   }
 }
+
+.compliance-section {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.checkbox-group,
+.radio-group {
+  margin-bottom: 10px;
+}
+
+.charge-note {
+  font-size: 0.85rem;
+  color: #b45309;
+  margin-left: 22px;
+}
+
