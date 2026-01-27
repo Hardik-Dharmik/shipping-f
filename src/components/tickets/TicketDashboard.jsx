@@ -230,7 +230,11 @@ const handleSendMessage = async () => {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticket) => (
+            {tickets.map((ticket) => {
+                const unreadCount = isAdmin
+                ? ticket.unread_admin_count
+                : ticket.unread_user_count;
+                return (
               <tr key={ticket.id}>
                 <td>{ticket.awb_number}</td>
                 <td>{ticket.username}</td>
@@ -248,11 +252,15 @@ const handleSendMessage = async () => {
                         onClick={() => handleViewTicket(ticket)}
                     >
                         View
+                        {unreadCount > 0 && (
+                            <span className="unread-badge">{unreadCount}</span>
+                        )}
                     </button>
                 </td>
 
               </tr>
-            ))}
+            )
+            })}
           </tbody>
         </table>
       </div>)}
