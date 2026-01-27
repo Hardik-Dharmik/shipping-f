@@ -122,18 +122,42 @@ const handleSendMessage = async () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newTicket = {
-      id: tickets.length + 1,
-      ...formData,
-      status: 'Open',
-      date: new Date().toISOString().split('T')[0]
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    setLoading(true);
+
+    const payload = {
+      awb_number: formData.awb,
+      category: formData.category,
+      subcategory: formData.subcategory
     };
-    setTickets([...tickets, newTicket]);
+
+    const res = await api.createTicket(payload);
+
+    if (!res.success) {
+      throw new Error(res.error || 'Failed to create ticket');
+    }
+
+    // Close modal
     setIsModalOpen(false);
     setFormData({ category: '', subcategory: '', awb: '' });
-  };
+
+    // Refresh tickets
+    await fetchTickets();
+
+    // OPTIONAL: auto-open ticket
+    // handleViewTicket(res.data);
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || 'Failed to create ticket');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -284,7 +308,9 @@ const handleSendMessage = async () => {
 
               <div className="modal-footer">
                 <button type="button" className="cancel-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="submit-btn">Create Ticket</button>
+<button type="submit" className="submit-btn" disabled={loading}>
+  {loading ? 'Creating...' : 'Create Ticket'}
+</button>
               </div>
             </form>
           </div>

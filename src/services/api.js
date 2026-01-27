@@ -161,6 +161,16 @@ export const api = {
   });
 },
 
+createTicket: async (payload) => {
+  return apiRequest('/api/tickets/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+},
+
   
 };
 
