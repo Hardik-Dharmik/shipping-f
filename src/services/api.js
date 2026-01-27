@@ -141,6 +141,27 @@ export const api = {
       method: 'GET',
     });
   },
+
+  getUserTickets: async() => {
+    return apiRequest('/api/tickets/my-tickets', {
+      method: 'GET',
+    });
+  },
+
+  getTicketMessages: async (ticketId) => {
+    return apiRequest(`/api/tickets/${ticketId}/messages`, {
+      method: 'GET',
+    });
+  },
+
+  sendTicketMessage: async (ticketId, formData) => {
+  return apiRequest(`/api/tickets/${ticketId}/messages`, {
+    method: 'POST',
+    body: formData, // ✅ send as-is
+  });
+},
+
+  
 };
 
 export default api;

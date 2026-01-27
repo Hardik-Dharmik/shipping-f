@@ -98,6 +98,19 @@ function Sidebar() {
                 </div>
               )}
             </div>
+            <Link 
+              to="/tickets" 
+              className={`sidebar-link ${location.pathname === '/tickets' ? 'active' : ''}`}
+              title={isCollapsed ? 'Tickets' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 5v2" />
+                <path d="M15 11v2" />
+                <path d="M15 17v2" />
+                <path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z" />
+              </svg>
+              {!isCollapsed && <span>Tickets</span>}
+            </Link>
           </>
         )}
         {isAdmin && (
@@ -126,6 +139,19 @@ function Sidebar() {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
               {!isCollapsed && <span>Users</span>}
+            </Link>
+            <Link 
+              to="/tickets" 
+              className={`sidebar-link ${location.pathname === '/tickets' ? 'active' : ''}`}
+              title={isCollapsed ? 'Tickets' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 5v2" />
+                <path d="M15 11v2" />
+                <path d="M15 17v2" />
+                <path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z" />
+              </svg>
+              {!isCollapsed && <span>Tickets</span>}
             </Link>
           </>
         )}

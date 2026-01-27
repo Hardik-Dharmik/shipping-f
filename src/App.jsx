@@ -13,6 +13,7 @@ import CreateOrder from './components/orders/CreateOrder';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import './App.css';
+import TicketDashboard from './components/tickets/TicketDashboard';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -159,6 +160,15 @@ function AppRoutes() {
                           </UserRoute>
                         } 
                       />
+                      <Route 
+  path="/tickets" 
+  element={
+    <ProtectedRoute>
+      <TicketDashboard />
+    </ProtectedRoute>
+  } 
+/>
+
                       <Route 
                         path="/admin/signups/pending" 
                         element={
