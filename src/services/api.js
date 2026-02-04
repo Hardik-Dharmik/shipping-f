@@ -56,6 +56,14 @@ async function apiRequest(endpoint, options = {}) {
     if (!response.ok) {
       // Handle different error response formats
       const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
+      const isAuthError = response.status === 401 || errorMessage === 'Token expired';
+      if (isAuthError) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login');
+        }
+      }
       throw new Error(errorMessage);
     }
     
