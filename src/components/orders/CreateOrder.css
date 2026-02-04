@@ -2,15 +2,18 @@
   padding: 20px;
   min-height: 100vh;
   background-color: #f5f7fa;
+  overflow-x: hidden;
 }
 
 .create-order-container {
-  /* max-width: 1200px; */
-  /* margin: 0 auto; */
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 40px;
+  box-sizing: border-box;
 }
 
 .create-order-header {
@@ -112,6 +115,8 @@
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 40px;
+  min-height: 48px;
+  line-height: 1.2;
 }
 
 .form-group input[type="text"]:focus,
@@ -261,6 +266,7 @@
 
 .currency-select {
   width: 110px;
+  flex: 0 0 110px;
   padding-right: 34px; /* keep space for dropdown arrow */
 }
 
@@ -273,6 +279,120 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.document-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border: 2px dashed #d6dbe8;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8faff 0%, #f1f4ff 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.document-section .section-title {
+  border-bottom-color: #4f63d8;
+}
+
+.document-section::before {
+  content: '';
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.18) 0%, rgba(102, 126, 234, 0) 70%);
+  pointer-events: none;
+}
+
+.document-section .form-grid {
+  gap: 18px;
+}
+
+.document-section .form-group {
+  background: #ffffff;
+  border: 1px solid #e1e6f5;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 10px rgba(70, 84, 150, 0.08);
+}
+
+.document-section .form-group label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2b3a55;
+}
+
+.document-section .form-group label::after {
+  content: ' Optional';
+  color: #7d8aa5;
+  font-weight: 500;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.file-input {
+  padding: 14px;
+  border: 2px dashed #b9c4e9;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.file-input:hover {
+  border-color: #4f63d8;
+  background: #f5f7ff;
+}
+
+.file-input::file-selector-button {
+  margin-right: 12px;
+  border: none;
+  background: #4f63d8;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.file-input::file-selector-button:hover {
+  background: #3f52c8;
+}
+
+.file-input:focus {
+  outline: none;
+  border-color: #4f63d8;
+  box-shadow: 0 0 0 3px rgba(79, 99, 216, 0.15);
+}
+
+.file-list {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-item {
+  background: #eef1ff;
+  color: #364152;
+  border: 1px solid #d7def8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .package-section-header {
@@ -576,8 +696,8 @@
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  max-width: 900px;
-  width: 100%;
+  max-width: 1200px;
+  width: min(1200px, 96vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;

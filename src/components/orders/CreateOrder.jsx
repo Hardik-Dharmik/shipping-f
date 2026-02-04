@@ -124,6 +124,8 @@ function CreateOrder() {
     exportDeclaration: false,
     dutyExemption: false
   });
+  const [invoiceFiles, setInvoiceFiles] = useState([]);
+  const [packingListFiles, setPackingListFiles] = useState([]);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -162,6 +164,14 @@ function CreateOrder() {
         [name]: ''
       }));
     }
+  };
+
+  const handleInvoiceFilesChange = (e) => {
+    setInvoiceFiles(Array.from(e.target.files || []));
+  };
+
+  const handlePackingListFilesChange = (e) => {
+    setPackingListFiles(Array.from(e.target.files || []));
   };
 
   const validateForm = () => {
@@ -338,8 +348,17 @@ function CreateOrder() {
     console.groupEnd();
 
     try{
+      const formPayload = new FormData();
+      formPayload.append('order', JSON.stringify(orderObject));
+      invoiceFiles.forEach((file) => {
+        formPayload.append('invoices', file);
+      });
+      packingListFiles.forEach((file) => {
+        formPayload.append('packing-lists', file);
+      });
+
       // Call create order API
-      const response = await api.createOrder(orderObject);
+      const response = await api.createOrder(formPayload);
       
       if (response.success && response.data) {
         toast.success('Shipment created successfully!');
@@ -473,6 +492,8 @@ function CreateOrder() {
     setPackages([
       { id: 1, actualWeight: '', length: '', breadth: '', height: '' }
     ]);
+    setInvoiceFiles([]);
+    setPackingListFiles([]);
   
     setErrors({});
     setRateResult(null);
@@ -1049,6 +1070,53 @@ function CreateOrder() {
     );
   };
 
+  const renderDocumentSection = () => (
+    <div className="document-section">
+      <h2 className="section-title">Documents (Optional)</h2>
+      <div className="form-grid">
+        <div className="form-group">
+          <label htmlFor="invoiceFiles">Invoice Upload</label>
+          <input
+            type="file"
+            id="invoiceFiles"
+            multiple
+            onChange={handleInvoiceFilesChange}
+            className="file-input"
+          />
+          {invoiceFiles.length > 0 && (
+            <div className="file-list">
+              {invoiceFiles.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="file-item">
+                  {file.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="packingListFiles">Packaging List Upload</label>
+          <input
+            type="file"
+            id="packingListFiles"
+            multiple
+            onChange={handlePackingListFilesChange}
+            className="file-input"
+          />
+          {packingListFiles.length > 0 && (
+            <div className="file-list">
+              {packingListFiles.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="file-item">
+                  {file.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="create-order">
       <div className="create-order-container">
@@ -1062,6 +1130,7 @@ function CreateOrder() {
           {renderAddressSection('delivery', 'Delivery Address')}
           {renderProductSection()}
           {renderPackageSection()}
+          {renderDocumentSection()}
 
           <div className="compliance-section">
           <h3 className="section-title">Compliance & Declarations</h3>

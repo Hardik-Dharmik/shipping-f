@@ -110,9 +110,10 @@ export const api = {
   },
 
   createOrder: async (orderData) => {
+    const isFormData = orderData instanceof FormData;
     return apiRequest('/api/shipping/order', {
       method: 'POST',
-      body: JSON.stringify(orderData),
+      body: isFormData ? orderData : JSON.stringify(orderData),
     });
   },
 
