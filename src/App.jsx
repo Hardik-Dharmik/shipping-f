@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -11,6 +11,7 @@ import RateCalculator from './components/shipping/RateCalculator';
 import Orders from './components/orders/Orders';
 import CreateOrder from './components/orders/CreateOrder';
 import OrderDetails from './components/orders/OrderDetails';
+import Billing from './components/billing/Billing';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import './App.css';
@@ -169,6 +170,10 @@ function AppRoutes() {
                           </UserRoute>
                         } 
                       />
+                      <Route
+                        path="/billing"
+                        element={<Billing />}
+                      />
                       <Route 
   path="/tickets" 
   element={
@@ -229,3 +234,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+

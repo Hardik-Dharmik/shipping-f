@@ -170,7 +170,7 @@ export const api = {
   });
 },
 
-createTicket: async (payload) => {
+  createTicket: async (payload) => {
   return apiRequest('/api/tickets/create', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -179,6 +179,19 @@ createTicket: async (payload) => {
     }
   });
 },
+
+  uploadBilling: async (formData) => {
+    return apiRequest('/api/billing/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  getBillingUploads: async () => {
+    return apiRequest('/api/billing/uploads', {
+      method: 'GET',
+    });
+  },
 
   
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useSidebar } from '../../contexts/SidebarContext';
@@ -89,7 +89,7 @@ function Sidebar() {
                   >
                     <span>Create Order</span>
                   </Link>
-                  <Link 
+            <Link 
                     to="/orders/list" 
                     className={`sidebar-submenu-link ${location.pathname === '/orders/list' ? 'active' : ''}`}
                   >
@@ -98,6 +98,17 @@ function Sidebar() {
                 </div>
               )}
             </div>
+            <Link 
+              to="/billing" 
+              className={`sidebar-link ${location.pathname === '/billing' ? 'active' : ''}`}
+              title={isCollapsed ? 'Billing' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              {!isCollapsed && <span>Billing</span>}
+            </Link>
             <Link 
               to="/tickets" 
               className={`sidebar-link ${location.pathname === '/tickets' ? 'active' : ''}`}
@@ -141,6 +152,17 @@ function Sidebar() {
               {!isCollapsed && <span>Users</span>}
             </Link>
             <Link 
+              to="/billing" 
+              className={`sidebar-link ${location.pathname === '/billing' ? 'active' : ''}`}
+              title={isCollapsed ? 'Billing' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              {!isCollapsed && <span>Billing</span>}
+            </Link>
+            <Link 
               to="/tickets" 
               className={`sidebar-link ${location.pathname === '/tickets' ? 'active' : ''}`}
               title={isCollapsed ? 'Tickets' : ''}
@@ -181,4 +203,6 @@ function Sidebar() {
 }
 
 export default Sidebar;
+
+
 
