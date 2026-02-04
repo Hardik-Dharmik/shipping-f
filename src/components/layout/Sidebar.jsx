@@ -44,6 +44,17 @@ function Sidebar() {
         {!isAdmin && (
           <>
             <Link 
+              to="/home" 
+              className={`sidebar-link ${location.pathname === '/home' ? 'active' : ''}`}
+              title={isCollapsed ? 'Home' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 11l9-7 9 7" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+              {!isCollapsed && <span>Home</span>}
+            </Link>
+            <Link 
               to="/calculate-rate" 
               className={`sidebar-link ${location.pathname === '/calculate-rate' ? 'active' : ''}`}
               title={isCollapsed ? 'Rate Calculator' : ''}
@@ -126,6 +137,17 @@ function Sidebar() {
         )}
         {isAdmin && (
           <>
+            <Link 
+              to="/home" 
+              className={`sidebar-link ${location.pathname === '/home' ? 'active' : ''}`}
+              title={isCollapsed ? 'Home' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 11l9-7 9 7" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+              {!isCollapsed && <span>Home</span>}
+            </Link>
             <Link 
               to="/admin/signups/pending" 
               className={`sidebar-link ${location.pathname === '/admin/signups/pending' ? 'active' : ''}`}

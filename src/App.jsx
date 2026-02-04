@@ -16,6 +16,7 @@ import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import './App.css';
 import TicketDashboard from './components/tickets/TicketDashboard';
+import Home from './components/home/Home';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -96,7 +97,7 @@ function DefaultRoute() {
     return <div>Loading...</div>;
   }
 
-  return <Navigate to={isAdmin ? "/admin/signups/pending" : "/calculate-rate"} replace />;
+  return <Navigate to={isAdmin ? "/admin/signups/pending" : "/home"} replace />;
 }
 
 function AppRoutes() {
@@ -130,6 +131,14 @@ function AppRoutes() {
                   <main className="main-content">
                     <Routes>
                       <Route path="/" element={<DefaultRoute />} />
+                      <Route
+                        path="/home"
+                        element={
+                          <ProtectedRoute>
+                            <Home />
+                          </ProtectedRoute>
+                        }
+                      />
                       <Route 
                         path="/calculate-rate" 
                         element={

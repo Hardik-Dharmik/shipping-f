@@ -193,6 +193,12 @@ export const api = {
     });
   },
 
+  getNotifications: async () => {
+    return apiRequest('/api/notifications', {
+      method: 'GET',
+    });
+  },
+
   
 };
 
