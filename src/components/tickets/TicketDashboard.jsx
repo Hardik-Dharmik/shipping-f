@@ -8,6 +8,7 @@ const TicketDashboard = () => {
 const myRole = isAdmin ? 'admin' : 'user';
 
   const [tickets, setTickets] = useState([]);
+  const [activeTab, setActiveTab] = useState('user');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,6 +42,14 @@ useEffect(() => {
 const [newMessage, setNewMessage] = useState('');
 const [file, setFile] = useState(null);
 const [sending, setSending] = useState(false);
+
+  const userTickets = tickets.filter(
+    (ticket) => (ticket.created_by_role || 'user') === 'user'
+  );
+  const adminTickets = tickets.filter(
+    (ticket) => (ticket.created_by_role || 'user') === 'admin'
+  );
+  const visibleTickets = activeTab === 'admin' ? adminTickets : userTickets;
 
 const handleSendMessage = async () => {
   if (!newMessage && !file) return;
@@ -201,6 +210,25 @@ const handleSendMessage = async () => {
         <button className="create-btn" onClick={() => setIsModalOpen(true)}>Create Ticket</button>
       </div>
 
+      {!loading && !error && (
+        <div className="tickets-tabs">
+          <button
+            className={`tickets-tab ${activeTab === 'user' ? 'active' : ''}`}
+            onClick={() => setActiveTab('user')}
+            type="button"
+          >
+            User Tickets ({userTickets.length})
+          </button>
+          <button
+            className={`tickets-tab ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+            type="button"
+          >
+            Admin Tickets ({adminTickets.length})
+          </button>
+        </div>
+      )}
+
         {loading ? (
           <div className="loading-state">
             <div className="spinner"></div>
@@ -211,9 +239,9 @@ const handleSendMessage = async () => {
             <p className="error-message">{error}</p>
             <button onClick={fetchTickets} className="btn-retry">Retry</button>
           </div>
-        ) : tickets.length === 0 ? (
+        ) : visibleTickets.length === 0 ? (
           <div className="empty-state">
-            <p>No tickets found.</p>
+            <p>No tickets found in this tab.</p>
           </div>
         ) 
       :(<div className="tickets-table-container">
@@ -230,7 +258,7 @@ const handleSendMessage = async () => {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticket) => {
+            {visibleTickets.map((ticket) => {
                 const unreadCount = isAdmin
                 ? ticket.unread_admin_count
                 : ticket.unread_user_count;

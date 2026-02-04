@@ -9,6 +9,37 @@
   margin-bottom: 20px;
 }
 
+.tickets-tabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 999px;
+  align-items: center;
+}
+
+.tickets-tab {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tickets-tab.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.tickets-tab:hover {
+  background: #e2e8f0;
+}
+
 .create-btn {
   background-color: #007bff;
   color: white;

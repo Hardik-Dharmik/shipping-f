@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { formatCurrency } from '../../utils/currency';
@@ -102,6 +103,7 @@ function Orders() {
                     <th>Status</th>
                     <th>Created</th>
                     <th>AWB Label</th>
+                    <th>Details</th>
                   </tr>
                 </thead>
 
@@ -153,6 +155,16 @@ function Orders() {
                           ) : (
                             <span className="no-file">-</span>
                           )}
+                        </td>
+
+                        <td>
+                          <Link
+                            to={`/orders/${order.id}`}
+                            state={{ order }}
+                            className="details-link"
+                          >
+                            View
+                          </Link>
                         </td>
                       </tr>
                     );

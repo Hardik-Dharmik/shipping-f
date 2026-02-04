@@ -10,6 +10,7 @@ import Signup from './components/auth/Signup';
 import RateCalculator from './components/shipping/RateCalculator';
 import Orders from './components/orders/Orders';
 import CreateOrder from './components/orders/CreateOrder';
+import OrderDetails from './components/orders/OrderDetails';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import './App.css';
@@ -149,6 +150,14 @@ function AppRoutes() {
                         element={
                           <UserRoute>
                             <Orders />
+                          </UserRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/orders/:orderId" 
+                        element={
+                          <UserRoute>
+                            <OrderDetails />
                           </UserRoute>
                         } 
                       />
