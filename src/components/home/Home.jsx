@@ -21,7 +21,7 @@ function NotificationCard({ item }) {
   const awbNumber = item?.data?.awb_number;
   const billingType = item?.data?.billing_type;
   const fileUrl = item?.data?.file_url;
-  const ticketId = item?.data?.ticket_id;
+  const ticketNumber = item?.data?.ticket_number;
 
   return (
     <article className="notification-card">
@@ -40,8 +40,8 @@ function NotificationCard({ item }) {
         {billingType && (
           <span className="detail-item">Type: {billingType}</span>
         )}
-        {ticketId && (
-          <span className="detail-item">Ticket: {ticketId}</span>
+        {ticketNumber && (
+          <span className="detail-item">Ticket #: {ticketNumber}</span>
         )}
       </div>
       {fileUrl && (

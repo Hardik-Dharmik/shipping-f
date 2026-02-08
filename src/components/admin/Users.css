@@ -1,5 +1,6 @@
 .users-page {
   width: 100%;
+  padding: 20px;
 }
 
 .users-container {
@@ -215,6 +216,22 @@
   flex-shrink: 0;
 }
 
+.details-link {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+}
+
+.details-link:hover {
+  background-color: #1d4ed8;
+}
+
 .no-file {
   color: #bdc3c7;
   font-style: italic;
@@ -228,5 +245,9 @@
   .users-table {
     min-width: 800px;
   }
+}
+
+.user-order-page{
+  padding: 20px;
 }
 

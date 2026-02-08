@@ -19,6 +19,8 @@ function Header() {
     if (path === '/orders') return 'Orders';
     if (path === '/admin/signups/pending') return 'Pending Approvals';
     if (path === '/admin/users') return 'Users';
+    if (path === '/admin/users/orders') return 'User Orders';
+    if (path.startsWith('/admin/users/') && path.endsWith('/orders')) return 'User Orders';
     return 'Dashboard';
   };
 

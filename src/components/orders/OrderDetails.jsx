@@ -3,11 +3,13 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { formatCurrency } from '../../utils/currency';
+import { useAuth } from '../../contexts/AuthContext';
 import './OrderDetails.css';
 
 function OrderDetails() {
   const { orderId } = useParams();
   const location = useLocation();
+  const { isAdmin } = useAuth();
   const [order, setOrder] = useState(location.state?.order || null);
   const [loading, setLoading] = useState(!location.state?.order);
   const [error, setError] = useState('');
@@ -97,9 +99,11 @@ function OrderDetails() {
         <div className="order-details-container">
           <div className="error-state">
             <p className="error-message">{error || 'Order not found'}</p>
-            <Link to="/orders/list" className="details-link back-link">
-              Back to Orders
-            </Link>
+            {!isAdmin && (
+              <Link to="/orders/list" className="details-link back-link">
+                Back to Orders
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -114,9 +118,11 @@ function OrderDetails() {
             <h1>Order Details</h1>
             <p className="subtitle">AWB {order.awb_number}</p>
           </div>
-          <Link to="/orders/list" className="details-link back-link">
-            Back to Orders
-          </Link>
+          {!isAdmin && (
+            <Link to="/orders/list" className="details-link back-link">
+              Back to Orders
+            </Link>
+          )}
         </div>
 
         <div className="order-details-grid">

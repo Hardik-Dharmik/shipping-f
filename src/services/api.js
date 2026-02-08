@@ -151,6 +151,20 @@ export const api = {
     });
   },
 
+  // Get users with order count
+  getUsersWithOrderCount: async () => {
+    return apiRequest('/api/admin/users-with-order-count', {
+      method: 'GET',
+    });
+  },
+
+  // Get orders for a specific user (admin)
+  getOrdersByUser: async (userId) => {
+    return apiRequest(`/api/shipping/orders/user/${userId}`, {
+      method: 'GET',
+    });
+  },
+
   getUserTickets: async() => {
     return apiRequest('/api/tickets/my-tickets', {
       method: 'GET',

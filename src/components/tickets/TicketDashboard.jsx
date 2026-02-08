@@ -248,6 +248,7 @@ const handleSendMessage = async () => {
         <table className="tickets-table">
           <thead>
             <tr>
+              <th>Ticket #</th>
               <th>AWB Number</th>
               <th>User</th>
               <th>Category</th>
@@ -264,6 +265,7 @@ const handleSendMessage = async () => {
                 : ticket.unread_user_count;
                 return (
               <tr key={ticket.id}>
+                <td>{ticket.ticket_number || '-'}</td>
                 <td>{ticket.awb_number}</td>
                 <td>{ticket.username}</td>
                 <td>{ticket.category}</td>

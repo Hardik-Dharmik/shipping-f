@@ -14,6 +14,8 @@ import OrderDetails from './components/orders/OrderDetails';
 import Billing from './components/billing/Billing';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
+import UsersWithOrders from './components/admin/UsersWithOrders';
+import UserOrders from './components/admin/UserOrders';
 import './App.css';
 import TicketDashboard from './components/tickets/TicketDashboard';
 import Home from './components/home/Home';
@@ -205,6 +207,30 @@ function AppRoutes() {
                         element={
                           <AdminRoute>
                             <Users />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/admin/users/orders" 
+                        element={
+                          <AdminRoute>
+                            <UsersWithOrders />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/admin/users/:userId/orders" 
+                        element={
+                          <AdminRoute>
+                            <UserOrders />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/admin/orders/:orderId" 
+                        element={
+                          <AdminRoute>
+                            <OrderDetails />
                           </AdminRoute>
                         } 
                       />
