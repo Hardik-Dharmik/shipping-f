@@ -1,0 +1,133 @@
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 10000;
+}
+
+.app-modal-overlay--fullscreen {
+  align-items: stretch;
+  padding: 0;
+}
+
+.app-modal {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.25);
+  overflow: hidden;
+}
+
+.app-modal--wide {
+  width: min(1200px, 100%);
+}
+
+.app-modal--fullscreen {
+  width: 100%;
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.app-modal-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.app-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-modal-close:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.app-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+.app-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.app-modal-secondary-btn,
+.app-modal-primary-btn {
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-modal-secondary-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.app-modal-primary-btn {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.app-modal-secondary-btn:disabled,
+.app-modal-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .app-modal-overlay {
+    padding: 12px;
+  }
+
+  .app-modal-header {
+    padding: 16px 18px;
+  }
+
+  .app-modal-title {
+    font-size: 18px;
+  }
+
+  .app-modal-body {
+    padding: 18px;
+  }
+
+  .app-modal-footer {
+    padding: 14px 18px 18px;
+  }
+}

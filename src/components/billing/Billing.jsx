@@ -156,15 +156,15 @@ function Billing() {
         </div>
       </div>
       {isModalOpen && (
-        <div className="billing-modal-overlay" onClick={handleCloseModal}>
-          <div className="billing-modal-content" onClick={(event) => event.stopPropagation()}>
-            <div className="billing-modal-header">
-              <h2>Add Billing</h2>
-              <button type="button" className="billing-modal-close" onClick={handleCloseModal}>
+        <div className="app-modal-overlay" onClick={handleCloseModal}>
+          <div className="app-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="app-modal-header">
+              <h2 className="app-modal-title">Add Billing</h2>
+              <button type="button" className="app-modal-close" onClick={handleCloseModal}>
                 &times;
               </button>
             </div>
-            <form className="billing-modal-body" onSubmit={handleUpload}>
+            <form className="billing-modal-body app-modal-body" onSubmit={handleUpload}>
               <label className="billing-field">
                 <span>AWB Number</span>
                 <input
@@ -197,16 +197,16 @@ function Billing() {
                   required
                 />
               </label>
-              <div className="billing-modal-footer">
+              <div className="billing-modal-footer app-modal-footer">
                 <button
                   type="button"
-                  className="billing-cancel-button"
+                  className="app-modal-secondary-btn"
                   onClick={handleCloseModal}
                   disabled={isUploading}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="billing-upload-button" disabled={isUploading}>
+                <button type="submit" className="app-modal-primary-btn" disabled={isUploading}>
                   {isUploading ? 'Uploading...' : 'Upload'}
                 </button>
               </div>

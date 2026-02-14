@@ -132,6 +132,7 @@ function CreateOrder() {
   const [rateResult, setRateResult] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rateError, setRateError] = useState(null);
+  const [creatingQuoteIndex, setCreatingQuoteIndex] = useState(null);
 
   useEffect(() => {
     if (
@@ -299,7 +300,9 @@ function CreateOrder() {
     return currencies.size === 1 ? [...currencies][0] : null;
   };
 
-  const handleCreateOrder = async(selectedQuote) => {
+  const handleCreateOrder = async (selectedQuote, quoteIndex) => {
+    setCreatingQuoteIndex(quoteIndex);
+
     // Prepare boxes
     const boxes = packages.map(pkg => ({
       quantity: 1,
@@ -374,6 +377,7 @@ function CreateOrder() {
       const errorMsg = error.message || 'Failed to create shipment. Please try again.';
       toast.error(errorMsg);
     } finally {
+      setCreatingQuoteIndex(null);
       setLoading(false);
       setIsModalOpen(false);
     }
@@ -498,6 +502,7 @@ function CreateOrder() {
     setErrors({});
     setRateResult(null);
     setRateError(null);
+    setCreatingQuoteIndex(null);
     setIsModalOpen(false);
     if (showToast) {
       toast.info('Form reset successfully');
@@ -1232,15 +1237,15 @@ function CreateOrder() {
 
         {/* Rate Calculation Results Modal */}
         {isModalOpen && rateResult && (
-          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Rate Calculation Results</h2>
-                <button className="modal-close" onClick={() => setIsModalOpen(false)}>
+          <div className="app-modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <div className="app-modal app-modal--wide" onClick={(e) => e.stopPropagation()}>
+              <div className="app-modal-header">
+                <h2 className="app-modal-title">Rate Calculation Results</h2>
+                <button className="app-modal-close" onClick={() => setIsModalOpen(false)}>
                   ×
                 </button>
               </div>
-              <div className="modal-body">
+              <div className="app-modal-body">
                 {rateError ? (
                   <div className="error-message">
                     <p>{rateError}</p>
@@ -1271,9 +1276,10 @@ function CreateOrder() {
                                   <td>
                                     <button
                                       className="btn-create-order"
-                                      onClick={() => handleCreateOrder(quote)}
+                                      onClick={() => handleCreateOrder(quote, index)}
+                                      disabled={creatingQuoteIndex !== null}
                                     >
-                                      Create Order
+                                      {creatingQuoteIndex === index ? 'Creating Order...' : 'Create Order'}
                                     </button>
                                   </td>
                                 </tr>
@@ -1327,9 +1333,9 @@ function CreateOrder() {
                   </>
                 )}
               </div>
-              <div className="modal-footer">
+              <div className="app-modal-footer">
                 <button
-                  className="btn-modal-close"
+                  className="app-modal-primary-btn"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Close

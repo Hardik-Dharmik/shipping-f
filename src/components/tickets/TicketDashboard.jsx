@@ -296,13 +296,13 @@ const handleSendMessage = async () => {
       </div>)}
 
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Create New Ticket</h3>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+        <div className="app-modal-overlay">
+          <div className="app-modal">
+            <div className="app-modal-header">
+              <h3 className="app-modal-title">Create New Ticket</h3>
+              <button className="app-modal-close" onClick={() => setIsModalOpen(false)}>&times;</button>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="app-modal-body">
               <div className="form-group">
                 <label>Category</label>
                 <select 
@@ -344,9 +344,9 @@ const handleSendMessage = async () => {
                 />
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="cancel-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-<button type="submit" className="submit-btn" disabled={loading}>
+              <div className="app-modal-footer">
+                <button type="button" className="app-modal-secondary-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+<button type="submit" className="app-modal-primary-btn" disabled={loading}>
   {loading ? 'Creating...' : 'Create Ticket'}
 </button>
               </div>
@@ -356,14 +356,14 @@ const handleSendMessage = async () => {
       )}
 
       {isViewModalOpen && selectedTicket && (
-  <div className="modal-overlay full-screen">
-    <div className="modal-content full-screen-content">
+  <div className="app-modal-overlay app-modal-overlay--fullscreen">
+    <div className="app-modal app-modal--fullscreen">
 
       {/* Header */}
-      <div className="modal-header">
-        <h3>Ticket Details</h3>
+      <div className="app-modal-header">
+        <h3 className="app-modal-title">Ticket Details</h3>
         <button
-          className="close-btn"
+          className="app-modal-close"
           onClick={() => setIsViewModalOpen(false)}
         >
           &times;

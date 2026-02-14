@@ -823,15 +823,15 @@ function RateCalculator() {
 
         {/* Order Details Modal */}
         {isModalOpen && result && (
-          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Order Details</h2>
-                <button className="modal-close" onClick={() => setIsModalOpen(false)}>
+          <div className="app-modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <div className="app-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="app-modal-header">
+                <h2 className="app-modal-title">Order Details</h2>
+                <button className="app-modal-close" onClick={() => setIsModalOpen(false)}>
                   ×
                 </button>
               </div>
-              <div className="modal-body">
+              <div className="app-modal-body">
                 <div className="details-card">
                   <div className="detail-item">
                     <span className="detail-label">Pickup Country:</span>
