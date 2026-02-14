@@ -1303,6 +1303,11 @@ function CreateOrder() {
                                 const breakdown = quote.costBreakdown || {};
                                 const compliance = breakdown.complianceCharges || {};
                                 const currency = breakdown.currency || quote.currency || 'AED';
+                                const boeCharge = Number(compliance.boeCharge) || 0;
+                                const doCharge = Number(compliance.doCharge) || 0;
+                                const exportCharge = Number(compliance.exportDeclarationCharge) || 0;
+                                const additionalCharge = Number(breakdown.additionalCharges) || 0;
+                                const complianceAndAdditionalTotal = additionalCharge;
 
                                 return (
                                   <Fragment key={`${quote.carrier}-${index}`}>
@@ -1351,21 +1356,14 @@ function CreateOrder() {
                                               <span>Base Shipping:</span>
                                               <strong>{formatQuoteAmount(breakdown.baseShippingCost, currency)}</strong>
                                             </div>
-                                            <div>
-                                              <span>BOE:</span>
-                                              <strong>{formatQuoteAmount(compliance.boeCharge, currency)}</strong>
+                                            <div className="quote-breakdown-section">
+                                              <span>Compliance & Additional Charges:</span>
+                                              <strong>{formatQuoteAmount(complianceAndAdditionalTotal, currency)}</strong>
                                             </div>
-                                            <div>
-                                              <span>D/O:</span>
-                                              <strong>{formatQuoteAmount(compliance.doCharge, currency)}</strong>
-                                            </div>
-                                            <div>
-                                              <span>Export Declaration:</span>
-                                              <strong>{formatQuoteAmount(compliance.exportDeclarationCharge, currency)}</strong>
-                                            </div>
-                                            <div>
-                                              <span>Additional Charges:</span>
-                                              <strong>{formatQuoteAmount(breakdown.additionalCharges, currency)}</strong>
+                                            <div className="quote-breakdown-subline">
+                                              <span>
+                                                BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}
+                                              </span>
                                             </div>
                                             <div className="quote-breakdown-total">
                                               <span>Total Cost:</span>

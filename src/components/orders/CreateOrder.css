@@ -858,6 +858,20 @@
   color: #1f7a3f;
 }
 
+.quote-breakdown-grid .quote-breakdown-section {
+  grid-column: span 2;
+  background: #f4f8ff;
+  border: 1px solid #d9e5fb;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.quote-breakdown-grid .quote-breakdown-subline {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: #6b7280;
+}
+
 .quote-row {
   cursor: pointer;
 }

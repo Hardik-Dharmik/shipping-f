@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { Fragment, useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
 import { api } from '../../services/api';
@@ -60,6 +60,7 @@ function RateCalculator() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
   
   const pickupDropdownRef = useRef(null);
   const destinationDropdownRef = useRef(null);
@@ -225,6 +226,7 @@ function RateCalculator() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setExpandedQuoteIndex(null);
 
     try {
       // Get total applicable weight
@@ -331,6 +333,21 @@ function RateCalculator() {
     setResult(null);
     setError(null);
     setIsModalOpen(false);
+    setExpandedQuoteIndex(null);
+  };
+
+  const formatQuoteAmount = (amount, currency = 'AED') => {
+    const numericAmount = Number(amount) || 0;
+    try {
+      return new Intl.NumberFormat('en-AE', {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(numericAmount);
+    } catch {
+      return formatCurrency(numericAmount);
+    }
   };
 
   const handleCreateShipment = async (quote) => {
@@ -757,44 +774,32 @@ function RateCalculator() {
 
           <div className="form-section">
             <h2>Additional Services</h2>
-            <div className="form-row" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div className="checkbox-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="form-row additional-services-grid">
+              <div className="checkbox-group compliance-option">
                 <input
                   type="checkbox"
                   id="requireBOE"
                   checked={requireBOE}
                   onChange={(e) => setRequireBOE(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                 />
-                <label htmlFor="requireBOE" style={{ cursor: 'pointer', fontSize: '15px' }}>
+                <label htmlFor="requireBOE">
                   REQUIRE BOE (Optional - 100 AED)
                 </label>
               </div>
-              <div className="checkbox-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="checkbox-group compliance-option">
                 <input
                   type="checkbox"
                   id="requireDO"
                   checked={requireDO}
                   onChange={(e) => setRequireDO(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                 />
-                <label htmlFor="requireDO" style={{ cursor: 'pointer', fontSize: '15px' }}>
+                <label htmlFor="requireDO">
                   REQUIRE D/O (Optional - 100 AED)
                 </label>
               </div>
               {formData.pickupCountry && formData.pickupCountry.toUpperCase() === 'UAE' && (
-                <div className="info-box" style={{ 
-                  padding: '10px', 
-                  backgroundColor: '#e3f2fd', 
-                  border: '1px solid #90caf9', 
-                  borderRadius: '4px',
-                  color: '#0d47a1',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <span style={{ fontSize: '18px' }}>ℹ️</span>
+                <div className="info-box">
+                  <span className="info-icon">i</span>
                   <span>
                     <strong>EXPORT DECLARATION</strong> is mandatory for all export bookings from UAE. 
                     (Additional charge: 120 AED)
@@ -913,22 +918,82 @@ function RateCalculator() {
                     </thead>
                     <tbody>
                       {result.quotes && result.quotes.length > 0 ? (
-                        result.quotes.map((quote, index) => (
-                          <tr key={index}>
-                            <td className="carrier-name">{quote.carrier}</td>
-                            <td className="cost">{formatCurrency(quote.cost)}</td>
-                            <td>{quote.estimatedDelivery}</td>
-                            <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
-                            <td>
-                              <button 
-                                className="btn-create-shipment"
-                                onClick={() => handleCreateShipment(quote)}
+                        result.quotes.map((quote, index) => {
+                          const breakdown = quote.costBreakdown || {};
+                          const compliance = breakdown.complianceCharges || {};
+                          const currency = breakdown.currency || quote.currency || 'AED';
+                          const boeCharge = Number(compliance.boeCharge) || 0;
+                          const doCharge = Number(compliance.doCharge) || 0;
+                          const exportCharge = Number(compliance.exportDeclarationCharge) || 0;
+                          const additionalCharge = Number(breakdown.additionalCharges) || 0;
+                          const complianceAndAdditionalTotal = additionalCharge;
+
+                          return (
+                            <Fragment key={`${quote.carrier}-${index}`}>
+                              <tr
+                                className={`quote-row ${expandedQuoteIndex === index ? 'expanded' : ''}`}
+                                onClick={() =>
+                                  setExpandedQuoteIndex((current) =>
+                                    current === index ? null : index
+                                  )
+                                }
                               >
-                                Create Shipment
-                              </button>
-                            </td>
-                          </tr>
-                        ))
+                                <td className="carrier-name">
+                                  <div className="carrier-cell">
+                                    <span>{quote.carrier}</span>
+                                    <span className="quote-expand-indicator">
+                                      {expandedQuoteIndex === index ? 'Hide cost details' : 'View cost details'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="cost">{formatQuoteAmount(quote.cost, currency)}</td>
+                                <td>{quote.estimatedDelivery}</td>
+                                <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
+                                <td onClick={(e) => e.stopPropagation()}>
+                                  <button 
+                                    className="btn-create-shipment"
+                                    onClick={() => handleCreateShipment(quote)}
+                                  >
+                                    Create Shipment
+                                  </button>
+                                </td>
+                              </tr>
+                              {expandedQuoteIndex === index && (
+                                <tr className="quote-breakdown-row">
+                                  <td colSpan="5">
+                                    <div className="quote-breakdown-grid">
+                                      <div>
+                                        <span>Rate/kg:</span>
+                                        <strong>{formatQuoteAmount(breakdown.ratePerKg, currency)}</strong>
+                                      </div>
+                                      <div>
+                                        <span>Chargeable Weight:</span>
+                                        <strong>{breakdown.weight ?? result?.weight?.actualWeight ?? 0} kg</strong>
+                                      </div>
+                                      <div>
+                                        <span>Base Shipping:</span>
+                                        <strong>{formatQuoteAmount(breakdown.baseShippingCost, currency)}</strong>
+                                      </div>
+                                      <div className="quote-breakdown-section">
+                                        <span>Compliance & Additional Charges:</span>
+                                        <strong>{formatQuoteAmount(complianceAndAdditionalTotal, currency)}</strong>
+                                      </div>
+                                      <div className="quote-breakdown-subline">
+                                        <span>
+                                          BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}
+                                        </span>
+                                      </div>
+                                      <div className="quote-breakdown-total">
+                                        <span>Total Cost:</span>
+                                        <strong>{formatQuoteAmount(breakdown.totalCost ?? quote.cost, currency)}</strong>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })
                       ) : (
                         <tr>
                           <td colSpan="5" className="no-quotes">No quotes available</td>

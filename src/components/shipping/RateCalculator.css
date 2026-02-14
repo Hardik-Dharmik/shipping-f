@@ -431,6 +431,137 @@
   transform: translateY(0);
 }
 
+.quote-row {
+  cursor: pointer;
+}
+
+.quote-row.expanded {
+  background-color: #f8fbff;
+}
+
+.carrier-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quote-expand-indicator {
+  font-size: 12px;
+  font-weight: 500;
+  color: #2563eb;
+}
+
+.quote-breakdown-row:hover {
+  background-color: transparent;
+}
+
+.quote-breakdown-row td {
+  padding-top: 0;
+  background: #fcfdff;
+}
+
+.quote-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px 14px;
+  padding: 10px 12px 14px;
+  border: 1px solid #e5e9f2;
+  border-radius: 8px;
+}
+
+.quote-breakdown-grid div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #5f6b7a;
+}
+
+.quote-breakdown-grid div strong {
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: right;
+}
+
+.quote-breakdown-grid .quote-breakdown-total {
+  grid-column: span 2;
+  padding-top: 6px;
+  border-top: 1px solid #dde3ef;
+}
+
+.quote-breakdown-grid .quote-breakdown-total strong {
+  color: #1f7a3f;
+}
+
+.quote-breakdown-grid .quote-breakdown-section {
+  grid-column: span 2;
+  background: #f4f8ff;
+  border: 1px solid #d9e5fb;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.quote-breakdown-grid .quote-breakdown-subline {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.additional-services-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compliance-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e4e9f7;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.compliance-option:hover {
+  border-color: #c5d5fa;
+  box-shadow: 0 3px 10px rgba(69, 106, 190, 0.1);
+}
+
+.compliance-option input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: #3355d4;
+  cursor: pointer;
+}
+
+.compliance-option label {
+  font-size: 14px;
+  color: #2a3d63;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #2563eb;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.info-icon {
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .no-quotes {
   text-align: center;
   padding: 40px 20px;
@@ -475,6 +606,14 @@
   .btn-create-shipment {
     padding: 6px 12px;
     font-size: 12px;
+  }
+
+  .quote-breakdown-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .quote-breakdown-grid .quote-breakdown-total {
+    grid-column: span 2;
   }
 
   .table-container {
