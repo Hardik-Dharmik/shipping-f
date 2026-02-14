@@ -58,7 +58,6 @@ function Login() {
       setLoading(true);
       try {
         const response = await api.login(formData.email, formData.password);
-        console.log('Login successful:', response);
         
         // Handle the API response structure
         if (response.success && response.token && response.user) {

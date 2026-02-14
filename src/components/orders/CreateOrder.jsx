@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { useNavigate, Link } from 'react-router-dom';
@@ -42,6 +42,20 @@ const CURRENCY_SYMBOLS = {
 
 const getCurrencySymbol = (code = 'AED') => {
   return CURRENCY_SYMBOLS[code] || code;
+};
+
+const formatQuoteAmount = (amount, currency = 'AED') => {
+  const numericAmount = Number(amount) || 0;
+  try {
+    return new Intl.NumberFormat('en-AE', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericAmount);
+  } catch {
+    return `${formatCurrency(numericAmount)} ${currency}`;
+  }
 };
 
 
@@ -133,6 +147,7 @@ function CreateOrder() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rateError, setRateError] = useState(null);
   const [creatingQuoteIndex, setCreatingQuoteIndex] = useState(null);
+  const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
 
   useEffect(() => {
     if (
@@ -329,6 +344,10 @@ function CreateOrder() {
       actualWeight: Number(actualWeight.toFixed(2)),
       boxes,
       shipmentValue: calculateShipmentValue(),
+      requireBOE: compliance.requireBOE,
+      requireDO: compliance.requireDO,
+      exportDeclaration: compliance.exportDeclaration,
+      dutyExemption: compliance.dutyExemption,
       carrier: {
         name: selectedQuote.carrier,
         cost: selectedQuote.cost,
@@ -396,6 +415,7 @@ function CreateOrder() {
     setLoading(true);
     setRateError(null);
     setRateResult(null);
+    setExpandedQuoteIndex(null);
     
     try {
       // Calculate shipment value from products
@@ -440,7 +460,11 @@ function CreateOrder() {
           breadth: pkg.breadth,
           height: pkg.height
         })),
-        shipmentValue: shipmentValue
+        shipmentValue: shipmentValue,
+        requireBOE: compliance.requireBOE,
+        requireDO: compliance.requireDO,
+        exportDeclaration: compliance.exportDeclaration,
+        dutyExemption: compliance.dutyExemption
       };
 
       // Call rate calculation API
@@ -503,6 +527,7 @@ function CreateOrder() {
     setRateResult(null);
     setRateError(null);
     setCreatingQuoteIndex(null);
+    setExpandedQuoteIndex(null);
     setIsModalOpen(false);
     if (showToast) {
       toast.info('Form reset successfully');
@@ -1140,58 +1165,63 @@ function CreateOrder() {
           <div className="compliance-section">
           <h3 className="section-title">Compliance & Declarations</h3>
 
-          <div className="checkbox-group">
+          <div className="checkbox-group compliance-option">
               <input
+                id="requireBOE"
                 type="checkbox"
                 checked={compliance.requireBOE}
                 onChange={(e) =>
                   setCompliance(prev => ({ ...prev, requireBOE: e.target.checked }))
                 }
               />
-            <label htmlFor="">
-              REQUIRE BOE 
+            <label htmlFor="requireBOE">
+              Require BOE (Bill of Entry) - Fee: 100 AED
             </label>
           </div>
 
-          <div className="checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={compliance.requireDO}
-                onChange={(e) =>
-                  setCompliance(prev => ({ ...prev, requireDO: e.target.checked }))
-                }
-              />
-              REQUIRE D/O
+          <div className="checkbox-group compliance-option">
+            <input
+              id="requireDO"
+              type="checkbox"
+              checked={compliance.requireDO}
+              onChange={(e) =>
+                setCompliance(prev => ({ ...prev, requireDO: e.target.checked }))
+              }
+            />
+            <label htmlFor="requireDO">
+              Require D/O (Delivery Order) - Fee: 100 AED
             </label>
           </div>
 
-          <div className="checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={compliance.exportDeclaration}
-                disabled={
-                  formData.pickupCountry === 'UAE' &&
-                  formData.deliveryCountry &&
-                  formData.deliveryCountry !== 'UAE'
-                }
-              />
-              EXPORT DECLARATION (Mandatory for UAE exports)
+          <div className="checkbox-group compliance-option">
+            <input
+              id="exportDeclaration"
+              type="checkbox"
+              checked={compliance.exportDeclaration}
+              disabled={
+                formData.pickupCountry === 'UAE' &&
+                formData.deliveryCountry &&
+                formData.deliveryCountry !== 'UAE'
+              }
+            />
+            <label htmlFor="exportDeclaration">
+              Export Declaration (Mandatory for UAE exports) - Fee: 120 AED
             </label>
             {formData.pickupCountry === 'UAE' &&
               formData.deliveryCountry &&
               formData.deliveryCountry !== 'UAE' && (
                 <p className="charge-note">
-                  Charges: <strong>120 AED</strong>
+                  This fee is applied automatically for UAE export shipments.
                 </p>
               )}
           </div>
 
           <div className="radio-group">
-            <label>DUTY EXEMPTION:</label>
-            <label>
+            <span className="radio-group-title">Duty Exemption</span>
+            <div className="radio-options">
+              <label className="compliance-option compliance-radio-option" htmlFor="dutyExemptionYes">
               <input
+                id="dutyExemptionYes"
                 type="radio"
                 name="dutyExemption"
                 checked={compliance.dutyExemption === true}
@@ -1201,8 +1231,9 @@ function CreateOrder() {
               />
               Yes
             </label>
-            <label>
+              <label className="compliance-option compliance-radio-option" htmlFor="dutyExemptionNo">
               <input
+                id="dutyExemptionNo"
                 type="radio"
                 name="dutyExemption"
                 checked={compliance.dutyExemption === false}
@@ -1212,6 +1243,7 @@ function CreateOrder() {
               />
               No
             </label>
+            </div>
           </div>
         </div>
 
@@ -1267,23 +1299,85 @@ function CreateOrder() {
                               </tr>
                             </thead>
                             <tbody>
-                              {rateResult.quotes.map((quote, index) => (
-                                <tr key={index}>
-                                  <td className="carrier-name">{quote.carrier}</td>
-                                  <td className="cost">{formatCurrency(quote.cost)}</td>
-                                  <td>{quote.estimatedDelivery}</td>
-                                  <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
-                                  <td>
-                                    <button
-                                      className="btn-create-order"
-                                      onClick={() => handleCreateOrder(quote, index)}
-                                      disabled={creatingQuoteIndex !== null}
+                              {rateResult.quotes.map((quote, index) => {
+                                const breakdown = quote.costBreakdown || {};
+                                const compliance = breakdown.complianceCharges || {};
+                                const currency = breakdown.currency || quote.currency || 'AED';
+
+                                return (
+                                  <Fragment key={`${quote.carrier}-${index}`}>
+                                    <tr
+                                      className={`quote-row ${expandedQuoteIndex === index ? 'expanded' : ''}`}
+                                      onClick={() =>
+                                        setExpandedQuoteIndex((current) =>
+                                          current === index ? null : index
+                                        )
+                                      }
                                     >
-                                      {creatingQuoteIndex === index ? 'Creating Order...' : 'Create Order'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
+                                      <td className="carrier-name">
+                                        <div className="carrier-cell">
+                                          <span>{quote.carrier}</span>
+                                          <span className="quote-expand-indicator">
+                                            {expandedQuoteIndex === index ? 'Hide cost details' : 'View cost details'}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="cost">{formatQuoteAmount(quote.cost, currency)}</td>
+                                      <td>{quote.estimatedDelivery}</td>
+                                      <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
+                                      <td onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                          className="btn-create-order"
+                                          onClick={() => handleCreateOrder(quote, index)}
+                                          disabled={creatingQuoteIndex !== null}
+                                        >
+                                          {creatingQuoteIndex === index ? 'Creating Order...' : 'Create Order'}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                    {expandedQuoteIndex === index && (
+                                      <tr className="quote-breakdown-row">
+                                        <td colSpan="5">
+                                          <div className="quote-breakdown-grid">
+                                            <div>
+                                              <span>Rate/kg:</span>
+                                              <strong>{formatQuoteAmount(breakdown.ratePerKg, currency)}</strong>
+                                            </div>
+                                            <div>
+                                              <span>Chargeable Weight:</span>
+                                              <strong>{breakdown.weight ?? quote?.weight ?? 0} kg</strong>
+                                            </div>
+                                            <div>
+                                              <span>Base Shipping:</span>
+                                              <strong>{formatQuoteAmount(breakdown.baseShippingCost, currency)}</strong>
+                                            </div>
+                                            <div>
+                                              <span>BOE:</span>
+                                              <strong>{formatQuoteAmount(compliance.boeCharge, currency)}</strong>
+                                            </div>
+                                            <div>
+                                              <span>D/O:</span>
+                                              <strong>{formatQuoteAmount(compliance.doCharge, currency)}</strong>
+                                            </div>
+                                            <div>
+                                              <span>Export Declaration:</span>
+                                              <strong>{formatQuoteAmount(compliance.exportDeclarationCharge, currency)}</strong>
+                                            </div>
+                                            <div>
+                                              <span>Additional Charges:</span>
+                                              <strong>{formatQuoteAmount(breakdown.additionalCharges, currency)}</strong>
+                                            </div>
+                                            <div className="quote-breakdown-total">
+                                              <span>Total Cost:</span>
+                                              <strong>{formatQuoteAmount(breakdown.totalCost ?? quote.cost, currency)}</strong>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </Fragment>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
