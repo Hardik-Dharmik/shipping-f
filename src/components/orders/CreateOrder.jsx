@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
-import { useNavigate, Link } from 'react-router-dom';
-import { formatCurrency, getCurrencyName } from '../../utils/currency';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { formatCurrency } from '../../utils/currency';
+import { toCreateOrderPrefill, extractAddressFormPayload } from '../../utils/addressForms';
 import './CreateOrder.css';
 import ImportantNotes from '../shipping/ImportantNotes';
 
@@ -84,35 +85,36 @@ const calculateChargeableWeight = (actualWeight, length, breadth, height) => {
   return Math.max(actualWeight || 0, volumetricWeight);
 };
 
+const INITIAL_ORDER_FORM_DATA = {
+  pickupCompanyName: '',
+  pickupCountry: '',
+  pickupPincode: '',
+  pickupMobileNo: '',
+  pickupFullName: '',
+  pickupCompleteAddress: '',
+  pickupLandmark: '',
+  pickupCity: '',
+  pickupState: '',
+  pickupAlternateNo: '',
+  pickupEmail: '',
+  deliveryCompanyName: '',
+  deliveryCountry: '',
+  deliveryPincode: '',
+  deliveryMobileNo: '',
+  deliveryFullName: '',
+  deliveryCompleteAddress: '',
+  deliveryLandmark: '',
+  deliveryCity: '',
+  deliveryState: '',
+  deliveryAlternateNo: '',
+  deliveryEmail: '',
+};
+
 function CreateOrder() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [formData, setFormData] = useState({
-    // Pickup fields
-    pickupCompanyName: '',
-    pickupCountry: '',
-    pickupPincode: '',
-    pickupMobileNo: '',
-    pickupFullName: '',
-    pickupCompleteAddress: '',
-    pickupLandmark: '',
-    pickupCity: '',
-    pickupState: '',
-    pickupAlternateNo: '',
-    pickupEmail: '',
-    // Delivery fields
-    deliveryCompanyName: '',
-    deliveryCountry: '',
-    deliveryPincode: '',
-    deliveryMobileNo: '',
-    deliveryFullName: '',
-    deliveryCompleteAddress: '',
-    deliveryLandmark: '',
-    deliveryCity: '',
-    deliveryState: '',
-    deliveryAlternateNo: '',
-    deliveryEmail: '',
-  });
+  const [formData, setFormData] = useState(INITIAL_ORDER_FORM_DATA);
 
   const [products, setProducts] = useState([
     {
@@ -148,6 +150,12 @@ function CreateOrder() {
   const [rateError, setRateError] = useState(null);
   const [creatingQuoteIndex, setCreatingQuoteIndex] = useState(null);
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
+  const [creatingAddressFormLink, setCreatingAddressFormLink] = useState(false);
+  const [loadingPrefill, setLoadingPrefill] = useState(false);
+  const [createdAddressForm, setCreatedAddressForm] = useState({
+    code: '',
+    url: '',
+  });
 
   useEffect(() => {
     if (
@@ -166,6 +174,31 @@ function CreateOrder() {
       }));
     }
   }, [formData.pickupCountry, formData.deliveryCountry]);
+
+  useEffect(() => {
+    const addressFormId = searchParams.get('addressFormId');
+    if (!addressFormId) return;
+
+    const prefillFromAddressForm = async () => {
+      try {
+        setLoadingPrefill(true);
+        const response = await api.getAddressFormById(addressFormId);
+        const parsed = extractAddressFormPayload(response);
+        const prefill = toCreateOrderPrefill(response);
+        setFormData((prev) => ({ ...prev, ...prefill }));
+        toast.success(`Address form ${parsed.code || addressFormId} loaded.`);
+      } catch (error) {
+        toast.error(error.message || 'Failed to prefill from address form.');
+      } finally {
+        setLoadingPrefill(false);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('addressFormId');
+        setSearchParams(nextParams, { replace: true });
+      }
+    };
+
+    prefillFromAddressForm();
+  }, [searchParams, setSearchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -188,6 +221,41 @@ function CreateOrder() {
 
   const handlePackingListFilesChange = (e) => {
     setPackingListFiles(Array.from(e.target.files || []));
+  };
+
+  const handleGenerateAddressFormLink = async () => {
+    try {
+      setCreatingAddressFormLink(true);
+      const response = await api.createAddressForm();
+      const payload = extractAddressFormPayload(response);
+      const code = payload.code || '';
+      const generatedUrl =
+        response?.data?.publicUrl ||
+        response?.publicUrl ||
+        (code ? `${window.location.origin}/address-forms/${code}` : '');
+
+      if (!code) {
+        throw new Error('Address form code not returned by server.');
+      }
+
+      setCreatedAddressForm({ code, url: generatedUrl });
+      toast.success('Shareable address form link created.');
+    } catch (error) {
+      toast.error(error.message || 'Failed to create shareable link.');
+    } finally {
+      setCreatingAddressFormLink(false);
+    }
+  };
+
+  const handleCopyAddressFormLink = async () => {
+    if (!createdAddressForm.url) return;
+
+    try {
+      await navigator.clipboard.writeText(createdAddressForm.url);
+      toast.success('Link copied to clipboard.');
+    } catch {
+      toast.error('Could not copy link. Please copy it manually.');
+    }
   };
 
   const validateForm = () => {
@@ -488,30 +556,7 @@ function CreateOrder() {
   };
 
   const handleReset = (showToast = true) => {
-    setFormData({
-      pickupCompanyName: '',
-      pickupCountry: '',
-      pickupPincode: '',
-      pickupMobileNo: '',
-      pickupFullName: '',
-      pickupCompleteAddress: '',
-      pickupLandmark: '',
-      pickupCity: '',
-      pickupState: '',
-      pickupAlternateNo: '',
-      pickupEmail: '',
-      deliveryCompanyName: '',
-      deliveryCountry: '',
-      deliveryPincode: '',
-      deliveryMobileNo: '',
-      deliveryFullName: '',
-      deliveryCompleteAddress: '',
-      deliveryLandmark: '',
-      deliveryCity: '',
-      deliveryState: '',
-      deliveryAlternateNo: '',
-      deliveryEmail: '',
-    });
+    setFormData(INITIAL_ORDER_FORM_DATA);
   
     setProducts([
       { id: 1, name: '', currency: 'AED', unitPrice: '', quantity: '' }
@@ -1153,6 +1198,36 @@ function CreateOrder() {
         <div className="create-order-header">
           <h1>Create Order</h1>
           <p>Fill in the pickup and delivery details</p>
+        </div>
+
+        <div className="address-form-tools">
+          <div className="address-form-tools-main">
+            <h3>Address Form Link</h3>
+            <p>Create a public link to collect pickup and destination address details.</p>
+            <div className="address-form-tools-actions">
+              <button
+                type="button"
+                className="btn-submit"
+                onClick={handleGenerateAddressFormLink}
+                disabled={creatingAddressFormLink}
+              >
+                {creatingAddressFormLink ? 'Generating Link...' : 'Generate Link'}
+              </button>
+              <Link to="/orders/address-forms" className="address-form-list-link">
+                Open Submitted Forms
+              </Link>
+            </div>
+          </div>
+          {createdAddressForm.code && (
+            <div className="address-form-tools-result">
+              <p><strong>Code:</strong> {createdAddressForm.code}</p>
+              <p className="address-form-link">{createdAddressForm.url}</p>
+              <button type="button" className="btn-copy-link" onClick={handleCopyAddressFormLink}>
+                Copy Link
+              </button>
+            </div>
+          )}
+          {loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="create-order-form">

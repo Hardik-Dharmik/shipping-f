@@ -11,6 +11,8 @@ import RateCalculator from './components/shipping/RateCalculator';
 import Orders from './components/orders/Orders';
 import CreateOrder from './components/orders/CreateOrder';
 import OrderDetails from './components/orders/OrderDetails';
+import AddressFormsList from './components/orders/AddressFormsList';
+import AddressFormPublic from './components/orders/AddressFormPublic';
 import Billing from './components/billing/Billing';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
@@ -121,6 +123,7 @@ function AppRoutes() {
           </PublicRoute>
         } 
       />
+      <Route path="/address-forms/:code" element={<AddressFormPublic />} />
       <Route
         path="/*"
         element={
@@ -164,6 +167,14 @@ function AppRoutes() {
                             <Orders />
                           </UserRoute>
                         } 
+                      />
+                      <Route
+                        path="/orders/address-forms"
+                        element={
+                          <UserRoute>
+                            <AddressFormsList />
+                          </UserRoute>
+                        }
                       />
                       <Route 
                         path="/orders/:orderId" 

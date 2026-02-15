@@ -117,6 +117,38 @@ export const api = {
     });
   },
 
+  // Address form links
+  createAddressForm: async () => {
+    return apiRequest('/api/shipping/address-forms', {
+      method: 'POST',
+    });
+  },
+
+  getPublicAddressForm: async (code) => {
+    return apiRequest(`/api/shipping/address-forms/public/${code}`, {
+      method: 'GET',
+    });
+  },
+
+  submitPublicAddressForm: async (code, payload) => {
+    return apiRequest(`/api/shipping/address-forms/public/${code}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getAddressForms: async () => {
+    return apiRequest('/api/shipping/address-forms', {
+      method: 'GET',
+    });
+  },
+
+  getAddressFormById: async (id) => {
+    return apiRequest(`/api/shipping/address-forms/${id}`, {
+      method: 'GET',
+    });
+  },
+
   getOrders: async () => {
     return apiRequest('/api/shipping/orders', {
       method: 'GET',

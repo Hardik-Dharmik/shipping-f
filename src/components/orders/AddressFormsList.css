@@ -1,0 +1,128 @@
+.address-forms-page {
+  padding: 20px;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.address-forms-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.08);
+}
+
+.address-forms-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.address-forms-header h1 {
+  margin: 0;
+  color: #101828;
+}
+
+.address-forms-header p {
+  margin: 4px 0 0;
+  color: #667085;
+}
+
+.address-forms-create-link {
+  text-decoration: none;
+  background: #1d4ed8;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.address-forms-state {
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  color: #374151;
+}
+
+.address-forms-error p {
+  margin: 0 0 8px;
+  color: #b42318;
+}
+
+.address-forms-error button {
+  border: 0;
+  background: #111827;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.address-forms-table-wrap {
+  overflow-x: auto;
+}
+
+.address-forms-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.address-forms-table th,
+.address-forms-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.address-forms-table th {
+  color: #475467;
+  font-weight: 600;
+}
+
+.address-form-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-submitted {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.status-expired {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.status-pending {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.address-form-action {
+  color: #1d4ed8;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .address-forms-page {
+    padding: 12px;
+  }
+
+  .address-forms-container {
+    padding: 16px;
+  }
+
+  .address-forms-header {
+    flex-direction: column;
+  }
+}
