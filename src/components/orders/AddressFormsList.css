@@ -97,6 +97,11 @@
   color: #027a48;
 }
 
+.status-ordered {
+  background: #eff8ff;
+  color: #175cd3;
+}
+
 .status-expired {
   background: #fef3f2;
   color: #b42318;
@@ -108,9 +113,18 @@
 }
 
 .address-form-action {
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: #1d4ed8;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
+}
+
+.address-form-action:disabled {
+  color: #98a2b3;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

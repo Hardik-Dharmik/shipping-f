@@ -152,6 +152,7 @@ function CreateOrder() {
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
   const [creatingAddressFormLink, setCreatingAddressFormLink] = useState(false);
   const [loadingPrefill, setLoadingPrefill] = useState(false);
+  const [selectedAddressFormId, setSelectedAddressFormId] = useState('');
   const [createdAddressForm, setCreatedAddressForm] = useState({
     code: '',
     url: '',
@@ -185,9 +186,11 @@ function CreateOrder() {
         const response = await api.getAddressFormById(addressFormId);
         const parsed = extractAddressFormPayload(response);
         const prefill = toCreateOrderPrefill(response);
+        setSelectedAddressFormId(addressFormId);
         setFormData((prev) => ({ ...prev, ...prefill }));
         toast.success(`Address form ${parsed.code || addressFormId} loaded.`);
       } catch (error) {
+        setSelectedAddressFormId('');
         toast.error(error.message || 'Failed to prefill from address form.');
       } finally {
         setLoadingPrefill(false);
@@ -429,7 +432,8 @@ function CreateOrder() {
         exportDeclaration: compliance.exportDeclaration,
         exportDeclarationCharge,
         dutyExemption: compliance.dutyExemption
-      }
+      },
+      addressFormId: selectedAddressFormId || null,
     };
   
     // 🔥 LOG FINAL OBJECT
@@ -452,6 +456,7 @@ function CreateOrder() {
       
       if (response.success && response.data) {
         toast.success('Shipment created successfully!');
+        setSelectedAddressFormId('');
         handleReset(false);
         setLoading(false);
         setIsModalOpen(false);

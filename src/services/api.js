@@ -149,6 +149,13 @@ export const api = {
     });
   },
 
+  updateAddressFormStatus: async (id, status) => {
+    return apiRequest(`/api/shipping/address-forms/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   getOrders: async () => {
     return apiRequest('/api/shipping/orders', {
       method: 'GET',

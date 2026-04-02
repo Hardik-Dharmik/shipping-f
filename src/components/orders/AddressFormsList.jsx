@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { extractAddressFormPayload } from '../../utils/addressForms';
@@ -20,12 +20,21 @@ const formatDateTime = (value) => {
 
 const getStatusClass = (status) => {
   const normalized = String(status || '').toLowerCase();
+  if (normalized === 'ordered') return 'status-ordered';
   if (normalized === 'submitted') return 'status-submitted';
   if (normalized === 'expired') return 'status-expired';
   return 'status-pending';
 };
 
+const canUseInOrder = (status) => String(status || '').toLowerCase() !== 'ordered';
+
+const formatStatusLabel = (status, submitted) => {
+  const resolvedStatus = status || (submitted ? 'Submitted' : 'Pending');
+  return String(resolvedStatus).toUpperCase();
+};
+
 function AddressFormsList() {
+  const navigate = useNavigate();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +56,11 @@ function AddressFormsList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUseInOrder = (form) => {
+    if (!form?.id) return;
+    navigate(`/orders/create?addressFormId=${form.id}`);
   };
 
   return (
@@ -88,17 +102,21 @@ function AddressFormsList() {
                     <td>{form.code || '-'}</td>
                     <td>
                       <span className={`address-form-status ${getStatusClass(form.status || (form.submitted ? 'submitted' : 'pending'))}`}>
-                        {form.status || (form.submitted ? 'Submitted' : 'Pending')}
+                        {formatStatusLabel(form.status, form.submitted)}
                       </span>
                     </td>
                     <td>{form.pickupAddress.completeAddress || form.pickupAddress.city || '-'}</td>
                     <td>{form.destinationAddress.completeAddress || form.destinationAddress.city || '-'}</td>
                     <td>{formatDateTime(form.submittedAt || form.createdAt)}</td>
                     <td>
-                      {form.id ? (
-                        <Link className="address-form-action" to={`/orders/create?addressFormId=${form.id}`}>
+                      {form.id && canUseInOrder(form.status) ? (
+                        <button
+                          type="button"
+                          className="address-form-action"
+                          onClick={() => handleUseInOrder(form)}
+                        >
                           Use In Order
-                        </Link>
+                        </button>
                       ) : (
                         '-'
                       )}
