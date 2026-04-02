@@ -113,6 +113,7 @@ const INITIAL_ORDER_FORM_DATA = {
 function CreateOrder() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const addressFormIdFromQuery = searchParams.get('addressFormId');
 
   const [formData, setFormData] = useState(INITIAL_ORDER_FORM_DATA);
 
@@ -157,6 +158,7 @@ function CreateOrder() {
     code: '',
     url: '',
   });
+  const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
 
   useEffect(() => {
     if (
@@ -1205,35 +1207,38 @@ function CreateOrder() {
           <p>Fill in the pickup and delivery details</p>
         </div>
 
-        <div className="address-form-tools">
-          <div className="address-form-tools-main">
-            <h3>Address Form Link</h3>
-            <p>Create a public link to collect pickup and destination address details.</p>
-            <div className="address-form-tools-actions">
-              <button
-                type="button"
-                className="btn-submit"
-                onClick={handleGenerateAddressFormLink}
-                disabled={creatingAddressFormLink}
-              >
-                {creatingAddressFormLink ? 'Generating Link...' : 'Generate Link'}
-              </button>
-              <Link to="/orders/address-forms" className="address-form-list-link">
-                Open Submitted Forms
-              </Link>
+        {!isUsingAddressForm && (
+          <div className="address-form-tools">
+            <div className="address-form-tools-main">
+              <h3>Address Form Link</h3>
+              <p>Create a public link to collect pickup and destination address details.</p>
+              <div className="address-form-tools-actions">
+                <button
+                  type="button"
+                  className="btn-submit"
+                  onClick={handleGenerateAddressFormLink}
+                  disabled={creatingAddressFormLink}
+                >
+                  {creatingAddressFormLink ? 'Generating Link...' : 'Generate Link'}
+                </button>
+                <Link to="/orders/address-forms" className="address-form-list-link">
+                  Open Submitted Forms
+                </Link>
+              </div>
             </div>
+            {createdAddressForm.code && (
+              <div className="address-form-tools-result">
+                <p><strong>Code:</strong> {createdAddressForm.code}</p>
+                <p className="address-form-link">{createdAddressForm.url}</p>
+                <button type="button" className="btn-copy-link" onClick={handleCopyAddressFormLink}>
+                  Copy Link
+                </button>
+              </div>
+            )}
+            {loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
           </div>
-          {createdAddressForm.code && (
-            <div className="address-form-tools-result">
-              <p><strong>Code:</strong> {createdAddressForm.code}</p>
-              <p className="address-form-link">{createdAddressForm.url}</p>
-              <button type="button" className="btn-copy-link" onClick={handleCopyAddressFormLink}>
-                Copy Link
-              </button>
-            </div>
-          )}
-          {loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
-        </div>
+        )}
+        {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
         <form onSubmit={handleSubmit} className="create-order-form">
           {renderAddressSection('pickup', 'Pickup Address')}
