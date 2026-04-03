@@ -221,10 +221,20 @@ function CreateOrder() {
 
   const handleInvoiceFilesChange = (e) => {
     setInvoiceFiles(Array.from(e.target.files || []));
+    e.target.value = '';
   };
 
   const handlePackingListFilesChange = (e) => {
     setPackingListFiles(Array.from(e.target.files || []));
+    e.target.value = '';
+  };
+
+  const handleRemoveInvoiceFile = (fileIndex) => {
+    setInvoiceFiles((prev) => prev.filter((_, index) => index !== fileIndex));
+  };
+
+  const handleRemovePackingListFile = (fileIndex) => {
+    setPackingListFiles((prev) => prev.filter((_, index) => index !== fileIndex));
   };
 
   const handleGenerateAddressFormLink = async () => {
@@ -1143,7 +1153,16 @@ function CreateOrder() {
             <div className="file-list">
               {invoiceFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="file-item">
-                  {file.name}
+                  <span className="file-name">{file.name}</span>
+                  <button
+                    type="button"
+                    className="file-remove-btn"
+                    onClick={() => handleRemoveInvoiceFile(index)}
+                    aria-label={`Remove ${file.name}`}
+                    title={`Remove ${file.name}`}
+                  >
+                    &times;
+                  </button>
                 </div>
               ))}
             </div>
@@ -1163,7 +1182,16 @@ function CreateOrder() {
             <div className="file-list">
               {packingListFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="file-item">
-                  {file.name}
+                  <span className="file-name">{file.name}</span>
+                  <button
+                    type="button"
+                    className="file-remove-btn"
+                    onClick={() => handleRemovePackingListFile(index)}
+                    aria-label={`Remove ${file.name}`}
+                    title={`Remove ${file.name}`}
+                  >
+                    &times;
+                  </button>
                 </div>
               ))}
             </div>
