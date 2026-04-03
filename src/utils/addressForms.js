@@ -12,9 +12,16 @@ export const ADDRESS_FIELD_KEYS = {
   email: ['email', 'emailAddress', 'email_address'],
 };
 
+const PRODUCT_FIELD_KEYS = {
+  name: ['name', 'productName', 'product_name', 'description'],
+  currency: ['currency', 'currencyCode', 'currency_code'],
+  unitPrice: ['unitPrice', 'unit_price', 'invoiceValue', 'invoice_value', 'value', 'price'],
+};
+
 const ADDRESS_FORM_PATHS = {
   pickup: ['pickupAddress', 'pickup', 'pickup_address'],
   destination: ['destinationAddress', 'destination', 'deliveryAddress', 'delivery', 'destination_address', 'delivery_address'],
+  products: ['products', 'productDetails', 'product_details', 'items'],
 };
 
 const isNonEmptyValue = (value) => value !== undefined && value !== null && value !== '';
@@ -51,6 +58,13 @@ const normalizeAddress = (address) => ({
   email: String(pickFirstValue(address, ADDRESS_FIELD_KEYS.email)),
 });
 
+const normalizeProduct = (product, index) => ({
+  id: Number(product?.id) || index + 1,
+  name: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.name)),
+  currency: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.currency) || 'AED'),
+  unitPrice: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.unitPrice)),
+});
+
 export const extractAddressFormPayload = (rawData) => {
   const data = rawData?.data && typeof rawData.data === 'object' ? rawData.data : rawData || {};
   const pickupRaw =
@@ -59,6 +73,18 @@ export const extractAddressFormPayload = (rawData) => {
   const destinationRaw =
     pickFirstObject(data, ADDRESS_FORM_PATHS.destination) ||
     pickFirstObject(data?.submission || {}, ADDRESS_FORM_PATHS.destination);
+  const productsRaw =
+    data?.products ||
+    data?.productDetails ||
+    data?.product_details ||
+    data?.items ||
+    data?.submission?.products ||
+    data?.submission?.productDetails ||
+    data?.submission?.product_details ||
+    data?.submission?.items;
+  const normalizedProducts = Array.isArray(productsRaw)
+    ? productsRaw.map((product, index) => normalizeProduct(product, index))
+    : [];
 
   return {
     id: data.id || data._id || '',
@@ -73,6 +99,7 @@ export const extractAddressFormPayload = (rawData) => {
     submittedAt: data.submittedAt || data.submitted_at || '',
     pickupAddress: normalizeAddress(pickupRaw),
     destinationAddress: normalizeAddress(destinationRaw),
+    products: normalizedProducts,
   };
 };
 

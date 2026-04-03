@@ -189,6 +189,9 @@ function CreateOrder() {
         const prefill = toCreateOrderPrefill(response);
         setSelectedAddressFormId(addressFormId);
         setFormData((prev) => ({ ...prev, ...prefill }));
+        if (parsed.products.length > 0) {
+          setProducts(parsed.products);
+        }
         toast.success(`Address form ${parsed.code || addressFormId} loaded.`);
       } catch (error) {
         setSelectedAddressFormId('');

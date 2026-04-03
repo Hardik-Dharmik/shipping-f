@@ -24,6 +24,18 @@ const COUNTRIES = [
 ];
 
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
+const PRODUCT_CURRENCIES = [
+  { code: 'AED', label: 'AED' },
+  { code: 'USD', label: 'USD' },
+  { code: 'EUR', label: 'EUR' },
+  { code: 'GBP', label: 'GBP' },
+  { code: 'INR', label: 'INR' },
+  { code: 'SAR', label: 'SAR' },
+  { code: 'CAD', label: 'CAD' },
+  { code: 'AUD', label: 'AUD' },
+  { code: 'CNY', label: 'CNY' },
+  { code: 'KRW', label: 'KRW' },
+];
 
 const INITIAL_ADDRESS = {
   companyName: '',
@@ -37,6 +49,13 @@ const INITIAL_ADDRESS = {
   state: '',
   alternateNo: '',
   email: '',
+};
+
+const INITIAL_PRODUCT = {
+  id: 1,
+  name: '',
+  currency: 'AED',
+  unitPrice: '',
 };
 
 function AddressFields({ prefix, value, errors, onChange, disabled }) {
@@ -205,6 +224,79 @@ function AddressFields({ prefix, value, errors, onChange, disabled }) {
   );
 }
 
+function ProductFields({ product, errors, onChange, disabled }) {
+  return (
+    <section className="public-address-section">
+      <div className="public-section-header">
+        <div>
+          <h2>Product Details</h2>
+          <p className="public-section-subtitle">Add the invoice value for this shipment.</p>
+        </div>
+      </div>
+
+      <div className="public-product-list">
+        <div className="public-product-card">
+          <div className="public-product-card-header">
+            <span>Product</span>
+          </div>
+
+          <div className="public-address-grid">
+            <div className="public-form-group">
+              <label htmlFor={`product-${product.id}-name`}>
+                Product Name <span className="required">*</span>
+              </label>
+              <input
+                id={`product-${product.id}-name`}
+                value={product.name}
+                onChange={(e) => onChange('name', e.target.value)}
+                disabled={disabled}
+                className={errors[`products.${product.id}.name`] ? 'error' : ''}
+              />
+              {errors[`products.${product.id}.name`] && (
+                <span className="public-error-message">{errors[`products.${product.id}.name`]}</span>
+              )}
+            </div>
+
+            <div className="public-form-group">
+              <label htmlFor={`product-${product.id}-unitPrice`}>
+                Total Invoice Value <span className="required">*</span>
+              </label>
+              <div className="public-currency-input">
+                <select
+                  aria-label="Product currency"
+                  value={product.currency || 'AED'}
+                  onChange={(e) => onChange('currency', e.target.value)}
+                  disabled={disabled}
+                >
+                  {PRODUCT_CURRENCIES.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  id={`product-${product.id}-unitPrice`}
+                  value={product.unitPrice}
+                  onChange={(e) => onChange('unitPrice', e.target.value)}
+                  disabled={disabled}
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  className={errors[`products.${product.id}.unitPrice`] ? 'error' : ''}
+                />
+              </div>
+              {errors[`products.${product.id}.unitPrice`] && (
+                <span className="public-error-message">{errors[`products.${product.id}.unitPrice`]}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function AddressFormPublic() {
   const { code = '' } = useParams();
   const [loading, setLoading] = useState(true);
@@ -213,6 +305,7 @@ function AddressFormPublic() {
   const [submitted, setSubmitted] = useState(false);
   const [pickupAddress, setPickupAddress] = useState(INITIAL_ADDRESS);
   const [destinationAddress, setDestinationAddress] = useState(INITIAL_ADDRESS);
+  const [product, setProduct] = useState(INITIAL_PRODUCT);
   const [errors, setErrors] = useState({});
 
   const formCode = useMemo(() => code.trim(), [code]);
@@ -234,6 +327,7 @@ function AddressFormPublic() {
         setSubmitted(payload.submitted);
         setPickupAddress(payload.pickupAddress);
         setDestinationAddress(payload.destinationAddress);
+        setProduct(payload.products.length > 0 ? payload.products[0] : INITIAL_PRODUCT);
       } catch (err) {
         setError(err.message || 'Unable to load this form.');
       } finally {
@@ -258,6 +352,18 @@ function AddressFormPublic() {
       return;
     }
     setDestinationAddress((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateProduct = (field, value) => {
+    const errorKey = `products.${product.id}.${field}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: '',
+      }));
+    }
+
+    setProduct((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateAddress = (type, address) => {
@@ -291,7 +397,16 @@ function AddressFormPublic() {
   const validateForm = () => {
     const pickupErrors = validateAddress('pickup', pickupAddress);
     const destinationErrors = validateAddress('destination', destinationAddress);
-    const nextErrors = { ...pickupErrors, ...destinationErrors };
+    const productErrors = {};
+
+    if (!product.name.trim()) {
+      productErrors[`products.${product.id}.name`] = 'Product name is required';
+    }
+    if (!product.unitPrice || Number(product.unitPrice) <= 0) {
+      productErrors[`products.${product.id}.unitPrice`] = 'Invoice value must be greater than 0';
+    }
+
+    const nextErrors = { ...pickupErrors, ...destinationErrors, ...productErrors };
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -311,6 +426,7 @@ function AddressFormPublic() {
       await api.submitPublicAddressForm(formCode, {
         pickupAddress,
         destinationAddress,
+        products: [product],
       });
       setSubmitted(true);
       toast.success('Address details submitted successfully.');
@@ -367,6 +483,12 @@ function AddressFormPublic() {
             value={destinationAddress}
             errors={errors}
             onChange={(field, value) => updateAddress('destination', field, value)}
+            disabled={submitted}
+          />
+          <ProductFields
+            product={product}
+            errors={errors}
+            onChange={updateProduct}
             disabled={submitted}
           />
 
