@@ -122,8 +122,7 @@ function CreateOrder() {
       id: 1,
       name: '',
       currency: 'AED',
-      unitPrice: '',
-      quantity: ''
+      unitPrice: ''
     }
   ]);
   const [packages, setPackages] = useState([
@@ -343,15 +342,12 @@ function CreateOrder() {
     }
 
     // Validate product fields
-    products.forEach((product, index) => {
+    products.forEach((product) => {
       if (!product.name.trim()) {
         newErrors[`product_${product.id}_name`] = 'Product name is required';
       }
       if (!product.unitPrice || parseFloat(product.unitPrice) <= 0) {
-        newErrors[`product_${product.id}_unitPrice`] = 'Unit price must be greater than 0';
-      }
-      if (!product.quantity || parseInt(product.quantity) <= 0) {
-        newErrors[`product_${product.id}_quantity`] = 'Quantity must be greater than 0';
+        newErrors[`product_${product.id}_unitPrice`] = 'Total invoice value must be greater than 0';
       }
     });
 
@@ -377,9 +373,8 @@ function CreateOrder() {
 
   const calculateShipmentValue = () => {
     return products.reduce((total, product) => {
-      const price = parseFloat(product.unitPrice) || 0;
-      const qty = parseInt(product.quantity) || 0;
-      return total + (price * qty);
+      const invoiceValue = parseFloat(product.unitPrice) || 0;
+      return total + invoiceValue;
     }, 0);
   };
 
@@ -566,7 +561,7 @@ function CreateOrder() {
     setFormData(INITIAL_ORDER_FORM_DATA);
   
     setProducts([
-      { id: 1, name: '', currency: 'AED', unitPrice: '', quantity: '' }
+      { id: 1, name: '', currency: 'AED', unitPrice: '' }
     ]);
   
     setPackages([
@@ -826,8 +821,7 @@ function CreateOrder() {
         id: newId,
         name: '',
         currency: 'AED',
-        unitPrice: '',
-        quantity: ''
+        unitPrice: ''
       }
     ]);
   };
@@ -927,7 +921,7 @@ function CreateOrder() {
 
               <div className="form-group">
                 <label htmlFor={`product_${product.id}_unitPrice`}>
-                  Unit Price <span className="required">*</span>
+                  Total Invoice Value <span className="required">*</span>
                 </label>
                 <div className="currency-input-group">
                   <select
@@ -955,32 +949,12 @@ function CreateOrder() {
                   <span className="error-message">{errors[`product_${product.id}_unitPrice`]}</span>
                 )}
               </div>
-
-              <div className="form-group">
-                <label htmlFor={`product_${product.id}_quantity`}>
-                  Quantity <span className="required">*</span>
-                </label>
-                <input
-                  type="number"
-                  id={`product_${product.id}_quantity`}
-                  value={product.quantity}
-                  onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
-                  placeholder="0"
-                  min="1"
-                  step="1"
-                  className={errors[`product_${product.id}_quantity`] ? 'error' : ''}
-                />
-                {errors[`product_${product.id}_quantity`] && (
-                  <span className="error-message">{errors[`product_${product.id}_quantity`]}</span>
-                )}
-              </div>
-
-              {product.unitPrice && product.quantity && (
+              {product.unitPrice && (
                 <div className="form-group">
-                  <label>Total</label>
+                  <label>Invoice Value</label>
                   <div className="product-total">
                     {getCurrencySymbol(product.currency)}
-                    {(parseFloat(product.unitPrice) * parseInt(product.quantity) || 0).toFixed(2)}
+                    {(parseFloat(product.unitPrice) || 0).toFixed(2)}
                   </div>
 
                 </div>
