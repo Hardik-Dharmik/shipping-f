@@ -119,38 +119,38 @@ export const api = {
 
   // Address form links
   createAddressForm: async () => {
-    return apiRequest('/api/shipping/address-forms', {
+    return apiRequest('/api/address/address-forms', {
       method: 'POST',
     });
   },
 
   getPublicAddressForm: async (code) => {
-    return apiRequest(`/api/shipping/address-forms/public/${code}`, {
+    return apiRequest(`/api/address/address-forms/public/${code}`, {
       method: 'GET',
     });
   },
 
   submitPublicAddressForm: async (code, payload) => {
-    return apiRequest(`/api/shipping/address-forms/public/${code}`, {
+    return apiRequest(`/api/address/address-forms/public/${code}`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
   getAddressForms: async () => {
-    return apiRequest('/api/shipping/address-forms', {
+    return apiRequest('/api/address/address-forms', {
       method: 'GET',
     });
   },
 
   getAddressFormById: async (id) => {
-    return apiRequest(`/api/shipping/address-forms/${id}`, {
+    return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'GET',
     });
   },
 
   updateAddressFormStatus: async (id, status) => {
-    return apiRequest(`/api/shipping/address-forms/${id}`, {
+    return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });

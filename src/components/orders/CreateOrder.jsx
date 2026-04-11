@@ -138,7 +138,8 @@ function CreateOrder() {
     requireBOE: false,
     requireDO: false,
     exportDeclaration: false,
-    dutyExemption: false
+    dutyExemption: false,
+    temporaryExportForRepairAndReturn: false
   });
   const [invoiceFiles, setInvoiceFiles] = useState([]);
   const [packingListFiles, setPackingListFiles] = useState([]);
@@ -429,6 +430,7 @@ function CreateOrder() {
       requireDO: compliance.requireDO,
       exportDeclaration: compliance.exportDeclaration,
       dutyExemption: compliance.dutyExemption,
+      temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
       carrier: {
         name: selectedQuote.carrier,
         cost: selectedQuote.cost,
@@ -441,7 +443,8 @@ function CreateOrder() {
         requireDO: compliance.requireDO,
         exportDeclaration: compliance.exportDeclaration,
         exportDeclarationCharge,
-        dutyExemption: compliance.dutyExemption
+        dutyExemption: compliance.dutyExemption,
+        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn
       },
       addressFormId: selectedAddressFormId || null,
     };
@@ -547,7 +550,8 @@ function CreateOrder() {
         requireBOE: compliance.requireBOE,
         requireDO: compliance.requireDO,
         exportDeclaration: compliance.exportDeclaration,
-        dutyExemption: compliance.dutyExemption
+        dutyExemption: compliance.dutyExemption,
+        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn
       };
 
       // Call rate calculation API
@@ -1333,6 +1337,42 @@ function CreateOrder() {
               />
               No
             </label>
+            </div>
+          </div>
+
+          <div className="radio-group">
+            <span className="radio-group-title">Temporary Export For Repair And Return</span>
+            <div className="radio-options">
+              <label
+                className="compliance-option compliance-radio-option"
+                htmlFor="temporaryExportForRepairAndReturnYes"
+              >
+                <input
+                  id="temporaryExportForRepairAndReturnYes"
+                  type="radio"
+                  name="temporaryExportForRepairAndReturn"
+                  checked={compliance.temporaryExportForRepairAndReturn === true}
+                  onChange={() =>
+                    setCompliance(prev => ({ ...prev, temporaryExportForRepairAndReturn: true }))
+                  }
+                />
+                Yes
+              </label>
+              <label
+                className="compliance-option compliance-radio-option"
+                htmlFor="temporaryExportForRepairAndReturnNo"
+              >
+                <input
+                  id="temporaryExportForRepairAndReturnNo"
+                  type="radio"
+                  name="temporaryExportForRepairAndReturn"
+                  checked={compliance.temporaryExportForRepairAndReturn === false}
+                  onChange={() =>
+                    setCompliance(prev => ({ ...prev, temporaryExportForRepairAndReturn: false }))
+                  }
+                />
+                No
+              </label>
             </div>
           </div>
         </div>
