@@ -289,6 +289,103 @@
   margin-top: 20px;
 }
 
+.offers-section h3 {
+  margin: 0 0 20px 0;
+  color: #34495e;
+  font-size: 20px;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.offers-list {
+  display: grid;
+  gap: 16px;
+}
+
+.offer-card {
+  background: linear-gradient(135deg, #fffaf0 0%, #fff 100%);
+  border: 1px solid #f7d9a8;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 6px 16px rgba(196, 138, 34, 0.08);
+}
+
+.offer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.offer-card-header h4 {
+  margin: 0;
+  color: #8a5a12;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.offer-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff1cf;
+  color: #9a6700;
+  border: 1px solid #f2ce84;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.offer-message {
+  margin: 0 0 14px 0;
+  color: #5f4b24;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.offer-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.offer-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #f5e3bb;
+  border-radius: 10px;
+}
+
+.offer-metric span {
+  font-size: 12px;
+  color: #8a6a31;
+}
+
+.offer-metric strong {
+  font-size: 15px;
+  color: #5f410d;
+}
+
+.offer-rules {
+  margin: 0;
+  padding-left: 18px;
+  color: #6f5522;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.offer-rules li + li {
+  margin-top: 4px;
+}
+
 /* Order Details */
 .order-details h3 {
   margin: 0 0 20px 0;
@@ -588,6 +685,18 @@
 
   .results-container {
     gap: 20px;
+  }
+
+  .offer-card {
+    padding: 16px;
+  }
+
+  .offer-card-header {
+    flex-direction: column;
+  }
+
+  .offer-metrics {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .results-header {

@@ -59,6 +59,20 @@ const formatQuoteAmount = (amount, currency = 'AED') => {
   }
 };
 
+const formatWeight = (value, unit = 'kg') => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  const formattedValue = Number.isInteger(numericValue)
+    ? numericValue
+    : numericValue.toFixed(2);
+
+  return `${formattedValue} ${unit}`;
+};
+
 
 const PRODUCT_CURRENCIES = [
   { code: 'AED', label: 'AED' },
@@ -1414,6 +1428,68 @@ function CreateOrder() {
                   </div>
                 ) : (
                   <>
+                    {rateResult.offers && rateResult.offers.length > 0 && (
+                      <div className="offers-section">
+                        <h3>Available Offers</h3>
+                        <div className="offers-list">
+                          {rateResult.offers.map((offer, index) => {
+                            const minimumActualWeight = formatWeight(offer.thresholds?.minimumActualWeight);
+                            const minimumChargeableWeight = formatWeight(offer.thresholds?.minimumChargeableWeight);
+                            const currentActualWeight = formatWeight(offer.current?.actualWeight);
+                            const currentChargeableWeight = formatWeight(offer.current?.chargeableWeight);
+
+                            return (
+                              <div className="offer-card" key={offer.code || `${offer.title}-${index}`}>
+                                <div className="offer-card-header">
+                                  <h4>{offer.title || 'Special offer available'}</h4>
+                                  {offer.code && <span className="offer-badge">{offer.code}</span>}
+                                </div>
+
+                                {offer.message && <p className="offer-message">{offer.message}</p>}
+
+                                {(currentActualWeight || currentChargeableWeight || minimumActualWeight || minimumChargeableWeight) && (
+                                  <div className="offer-metrics">
+                                    {currentActualWeight && (
+                                      <div className="offer-metric">
+                                        <span>Current Actual Weight</span>
+                                        <strong>{currentActualWeight}</strong>
+                                      </div>
+                                    )}
+                                    {currentChargeableWeight && (
+                                      <div className="offer-metric">
+                                        <span>Current Chargeable Weight</span>
+                                        <strong>{currentChargeableWeight}</strong>
+                                      </div>
+                                    )}
+                                    {minimumActualWeight && (
+                                      <div className="offer-metric">
+                                        <span>Minimum Actual Weight</span>
+                                        <strong>{minimumActualWeight}</strong>
+                                      </div>
+                                    )}
+                                    {minimumChargeableWeight && (
+                                      <div className="offer-metric">
+                                        <span>Minimum Chargeable Weight</span>
+                                        <strong>{minimumChargeableWeight}</strong>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {offer.rules && offer.rules.length > 0 && (
+                                  <ul className="offer-rules">
+                                    {offer.rules.map((rule, ruleIndex) => (
+                                      <li key={`${offer.code || index}-rule-${ruleIndex}`}>{rule}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {rateResult.quotes && rateResult.quotes.length > 0 ? (
                       <div className="quotes-table">
                         <h3>Available Shipping Services</h3>
