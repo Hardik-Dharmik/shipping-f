@@ -73,6 +73,21 @@ async function apiRequest(endpoint, options = {}) {
   }
 }
 
+function buildQueryString(params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  const queryString = searchParams.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
 // API functions
 export const api = {
   // Login
@@ -156,8 +171,8 @@ export const api = {
     });
   },
 
-  getOrders: async () => {
-    return apiRequest('/api/shipping/orders', {
+  getOrders: async (params = {}) => {
+    return apiRequest(`/api/shipping/orders${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
