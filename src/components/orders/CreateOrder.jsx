@@ -73,6 +73,31 @@ const formatWeight = (value, unit = 'kg') => {
   return `${formattedValue} ${unit}`;
 };
 
+const isOfferConditionSatisfied = (offer) => {
+  if (!offer) return false;
+
+  const currentActualWeight = Number(offer.current?.actualWeight);
+  const currentChargeableWeight = Number(offer.current?.chargeableWeight);
+  const minimumActualWeight = Number(offer.thresholds?.minimumActualWeight);
+  const minimumChargeableWeight = Number(offer.thresholds?.minimumChargeableWeight);
+
+  const meetsActualWeight =
+    !Number.isFinite(minimumActualWeight) ||
+    minimumActualWeight <= 0 ||
+    (Number.isFinite(currentActualWeight) && currentActualWeight >= minimumActualWeight);
+
+  const meetsChargeableWeight =
+    !Number.isFinite(minimumChargeableWeight) ||
+    minimumChargeableWeight <= 0 ||
+    (Number.isFinite(currentChargeableWeight) && currentChargeableWeight >= minimumChargeableWeight);
+
+  return meetsActualWeight && meetsChargeableWeight;
+};
+
+const isFedExCarrier = (carrierName = '') => carrierName.toLowerCase().includes('fedex');
+
+const getOfferCarrierName = (offer) => (offer?.carrier || '').toLowerCase();
+
 
 const PRODUCT_CURRENCIES = [
   { code: 'AED', label: 'AED' },
@@ -173,6 +198,12 @@ function CreateOrder() {
     url: '',
   });
   const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
+  const allOffers = rateResult?.offers || [];
+  const satisfiedOffers = allOffers.filter(isOfferConditionSatisfied);
+  const unsatisfiedOffers = allOffers.filter((offer) => !isOfferConditionSatisfied(offer));
+  const hasFedExQuote = (rateResult?.quotes || []).some((quote) => isFedExCarrier(quote.carrier));
+  const offersForCards = hasFedExQuote ? unsatisfiedOffers : allOffers;
+  const fedExRowOffers = hasFedExQuote ? satisfiedOffers : [];
 
   useEffect(() => {
     if (
@@ -1428,11 +1459,11 @@ function CreateOrder() {
                   </div>
                 ) : (
                   <>
-                    {rateResult.offers && rateResult.offers.length > 0 && (
+                    {offersForCards.length > 0 && (
                       <div className="offers-section">
                         <h3>Available Offers</h3>
                         <div className="offers-list">
-                          {rateResult.offers.map((offer, index) => {
+                          {offersForCards.map((offer, index) => {
                             const minimumActualWeight = formatWeight(offer.thresholds?.minimumActualWeight);
                             const minimumChargeableWeight = formatWeight(offer.thresholds?.minimumChargeableWeight);
                             const currentActualWeight = formatWeight(offer.current?.actualWeight);
@@ -1514,11 +1545,17 @@ function CreateOrder() {
                                 const exportCharge = Number(compliance.exportDeclarationCharge) || 0;
                                 const additionalCharge = Number(breakdown.additionalCharges) || 0;
                                 const complianceAndAdditionalTotal = additionalCharge;
+                                const showFedExOfferInfo = isFedExCarrier(quote.carrier) && fedExRowOffers.length > 0;
+                                const matchingSatisfiedOffer = satisfiedOffers.find(
+                                  (offer) => getOfferCarrierName(offer) === (quote.carrier || '').toLowerCase()
+                                );
+                                const discountedRatePerKg = Number(matchingSatisfiedOffer?.discountedRatePerKg);
+                                const hasDiscountedRatePerKg = Number.isFinite(discountedRatePerKg) && discountedRatePerKg > 0;
 
                                 return (
                                   <Fragment key={`${quote.carrier}-${index}`}>
                                     <tr
-                                      className={`quote-row ${expandedQuoteIndex === index ? 'expanded' : ''}`}
+                                      className={`quote-row ${expandedQuoteIndex === index ? 'expanded' : ''} ${matchingSatisfiedOffer ? 'quote-row--discounted' : ''}`}
                                       onClick={() =>
                                         setExpandedQuoteIndex((current) =>
                                           current === index ? null : index
@@ -1533,7 +1570,14 @@ function CreateOrder() {
                                           </span>
                                         </div>
                                       </td>
-                                      <td className="cost">{formatQuoteAmount(quote.cost, currency)}</td>
+                                      <td className={`cost ${matchingSatisfiedOffer ? 'cost--discounted' : ''}`}>
+                                        <div className="cost-cell">
+                                          <span>{formatQuoteAmount(quote.cost, currency)}</span>
+                                          {matchingSatisfiedOffer && (
+                                            <span className="discount-pill">Discounted</span>
+                                          )}
+                                        </div>
+                                      </td>
                                       <td>{quote.estimatedDelivery}</td>
                                       <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
                                       <td onClick={(e) => e.stopPropagation()}>
@@ -1546,13 +1590,35 @@ function CreateOrder() {
                                         </button>
                                       </td>
                                     </tr>
+                                    {showFedExOfferInfo && (
+                                      <tr className="quote-offer-row">
+                                        <td colSpan="5">
+                                          <div className="quote-offer-note">
+                                            {fedExRowOffers.map((offer, offerIndex) => (
+                                              <p key={offer.code || `${offer.title}-${offerIndex}`}>
+                                                {offer.title || 'Offer applied'}
+                                                {offer.message ? `: ${offer.message}` : ' is already applied to this FedEx rate.'}
+                                                {Number.isFinite(Number(offer.discountedRatePerKg)) && Number(offer.discountedRatePerKg) > 0
+                                                  ? ` Discounted rate: ${formatQuoteAmount(Number(offer.discountedRatePerKg), currency)}/kg.`
+                                                  : ''}
+                                              </p>
+                                            ))}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
                                     {expandedQuoteIndex === index && (
                                       <tr className="quote-breakdown-row">
                                         <td colSpan="5">
                                           <div className="quote-breakdown-grid">
                                             <div>
                                               <span>Rate/kg:</span>
-                                              <strong>{formatQuoteAmount(breakdown.ratePerKg, currency)}</strong>
+                                              <strong className={hasDiscountedRatePerKg ? 'discounted-rate-text' : ''}>
+                                                {formatQuoteAmount(
+                                                  hasDiscountedRatePerKg ? discountedRatePerKg : breakdown.ratePerKg,
+                                                  currency
+                                                )}
+                                              </strong>
                                             </div>
                                             <div>
                                               <span>Chargeable Weight:</span>

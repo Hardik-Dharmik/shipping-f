@@ -1044,6 +1044,30 @@
   background: #fcfdff;
 }
 
+.quote-offer-row td {
+  padding-top: 0;
+  background: #fffdf7;
+}
+
+.quote-offer-note {
+  margin: 0 14px 10px;
+  padding: 10px 12px;
+  border-left: 3px solid #f59e0b;
+  background: #fff7e6;
+  border-radius: 6px;
+}
+
+.quote-offer-note p {
+  margin: 0;
+  font-size: 12px;
+  color: #9a6700;
+  line-height: 1.5;
+}
+
+.quote-offer-note p + p {
+  margin-top: 6px;
+}
+
 .quote-breakdown-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -1099,6 +1123,14 @@
   background-color: #f8fbff;
 }
 
+.quote-row--discounted {
+  background: linear-gradient(90deg, #fff9ec 0%, #ffffff 55%);
+}
+
+.quote-row--discounted:hover {
+  background: linear-gradient(90deg, #fff3d6 0%, #f8f9fa 55%);
+}
+
 .carrier-cell {
   display: flex;
   flex-direction: column;
@@ -1122,8 +1154,37 @@
   font-size: 16px;
 }
 
+.quotes-table .cost--discounted {
+  color: #c67a00;
+}
+
+.cost-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.discount-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff1cf;
+  border: 1px solid #f2ce84;
+  color: #9a6700;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .quotes-table .delivery-date {
   color: #7f8c8d;
+}
+
+.discounted-rate-text {
+  color: #c67a00 !important;
 }
 
 .btn-create-order {
