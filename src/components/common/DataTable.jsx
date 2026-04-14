@@ -18,7 +18,8 @@ function DataTable({
   emptyMessage = 'No data found.',
   singularLabel = 'Item',
   pluralLabel = 'Items',
-  errorMessage = 'Failed to load data'
+  errorMessage = 'Failed to load data',
+  refreshKey
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [searchInput, setSearchInput] = useState(initialQuery.search || '');
@@ -103,7 +104,7 @@ function DataTable({
     return () => {
       isSubscribed = false;
     };
-  }, [errorMessage, fetchData, normalizeResponse, query]);
+  }, [errorMessage, fetchData, normalizeResponse, query, refreshKey]);
 
   const updateQuery = (updates) => {
     setQuery((current) => ({
