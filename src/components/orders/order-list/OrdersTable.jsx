@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import DataTable from '../common/DataTable';
-import { formatCurrency } from '../../utils/currency';
+import DataTable from '../../common/DataTable';
+import { formatCurrency } from '../../../utils/currency';
 
 const DEFAULT_QUERY = {
   search: '',

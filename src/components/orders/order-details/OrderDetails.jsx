@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { api } from '../../services/api';
-import { formatCurrency } from '../../utils/currency';
-import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../../services/api';
+import { formatCurrency } from '../../../utils/currency';
+import { useAuth } from '../../../contexts/AuthContext';
 import './OrderDetails.css';
 
 function OrderDetails() {

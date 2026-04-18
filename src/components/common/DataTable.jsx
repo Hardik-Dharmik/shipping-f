@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import './DataTable.css';
 
@@ -19,11 +19,13 @@ function DataTable({
   singularLabel = 'Item',
   pluralLabel = 'Items',
   errorMessage = 'Failed to load data',
-  refreshKey
+  refreshKey,
+  resetKey
 }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [searchInput, setSearchInput] = useState(initialQuery.search || '');
-  const [debouncedSearch, setDebouncedSearch] = useState(initialQuery.search || '');
+  const initialQueryRef = useRef(initialQuery);
+  const [query, setQuery] = useState(initialQueryRef.current);
+  const [searchInput, setSearchInput] = useState(initialQueryRef.current.search || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(initialQueryRef.current.search || '');
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({
     totalItems: 0,
@@ -57,16 +59,21 @@ function DataTable({
   }, [debouncedSearch]);
 
   useEffect(() => {
+    setSearchInput(initialQueryRef.current.search || '');
+    setDebouncedSearch(initialQueryRef.current.search || '');
+    setQuery(initialQueryRef.current);
+  }, [resetKey]);
+
+  useEffect(() => {
     let isSubscribed = true;
 
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
-
         const response = await fetchData(query);
 
-        if (!response?.success) {
+        if (response?.success === false) {
           throw new Error(errorMessage);
         }
 
@@ -118,21 +125,20 @@ function DataTable({
   };
 
   const handleClearFilters = () => {
-    setSearchInput(initialQuery.search || '');
-    setDebouncedSearch(initialQuery.search || '');
-    setQuery(initialQuery);
+    setSearchInput(initialQueryRef.current.search || '');
+    setDebouncedSearch(initialQueryRef.current.search || '');
+    setQuery(initialQueryRef.current);
   };
 
-  const hasActiveFilters = Object.keys(initialQuery).some((key) => {
+  const hasActiveFilters = Object.keys(initialQueryRef.current).some((key) => {
     const currentValue = query[key];
-    const initialValue = initialQuery[key];
+    const initialValue = initialQueryRef.current[key];
     return currentValue !== initialValue;
   });
 
   const startItem = rows.length === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = rows.length === 0 ? 0 : startItem + rows.length - 1;
   const itemLabel = pagination.totalItems === 1 ? singularLabel : pluralLabel;
-
   const visiblePages = [];
   const firstVisiblePage = Math.max(1, pagination.page - 2);
   const lastVisiblePage = Math.min(pagination.totalPages, firstVisiblePage + 4);
@@ -245,7 +251,7 @@ function DataTable({
         <>
           <div className="app-data-table-list-header">
             <p className="app-data-table-range-text">
-              Showing {startItem}-{endItem} of {pagination.totalItems}
+              Showing {startItem}-{endItem} of {pagination.totalItems} {itemLabel}
             </p>
           </div>
 

@@ -8,11 +8,6 @@ import Header from './components/layout/Header';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import RateCalculator from './components/shipping/RateCalculator';
-import Orders from './components/orders/Orders';
-import CreateOrder from './components/orders/CreateOrder';
-import OrderDetails from './components/orders/OrderDetails';
-import AddressFormsList from './components/orders/AddressFormsList';
-import AddressFormPublic from './components/orders/AddressFormPublic';
 import Billing from './components/billing/Billing';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
@@ -21,6 +16,11 @@ import UserOrders from './components/admin/UserOrders';
 import './App.css';
 import TicketDashboard from './components/tickets/TicketDashboard';
 import Home from './components/home/Home';
+import OrderDetails from './components/orders/order-details/OrderDetails';
+import Orders from './components/orders/order-list/Orders';
+import CreateOrder from './components/orders/create-order/CreateOrder';
+import AddressFormsList from './components/orders/address-form/list/AddressFormsList';
+import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -197,13 +197,13 @@ function AppRoutes() {
                         element={<Billing />}
                       />
                       <Route 
-  path="/tickets" 
-  element={
-    <ProtectedRoute>
-      <TicketDashboard />
-    </ProtectedRoute>
-  } 
-/>
+                        path="/tickets" 
+                        element={
+                          <ProtectedRoute>
+                            <TicketDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
 
                       <Route 
                         path="/admin/signups/pending" 

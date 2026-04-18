@@ -152,8 +152,8 @@ export const api = {
     });
   },
 
-  getAddressForms: async () => {
-    return apiRequest('/api/address/address-forms', {
+  getAddressForms: async (params = {}) => {
+    return apiRequest(`/api/address/address-forms${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
@@ -219,8 +219,8 @@ export const api = {
     });
   },
 
-  getUserTickets: async() => {
-    return apiRequest('/api/tickets/my-tickets', {
+  getUserTickets: async(params={}) => {
+    return apiRequest(`/api/tickets/my-tickets${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
@@ -232,21 +232,21 @@ export const api = {
   },
 
   sendTicketMessage: async (ticketId, formData) => {
-  return apiRequest(`/api/tickets/${ticketId}/messages`, {
-    method: 'POST',
-    body: formData, // ✅ send as-is
-  });
-},
+    return apiRequest(`/api/tickets/${ticketId}/messages`, {
+      method: 'POST',
+      body: formData, // ✅ send as-is
+    });
+  },
 
   createTicket: async (payload) => {
-  return apiRequest('/api/tickets/create', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-},
+    return apiRequest('/api/tickets/create', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  },
 
   uploadBilling: async (formData) => {
     return apiRequest('/api/billing/upload', {

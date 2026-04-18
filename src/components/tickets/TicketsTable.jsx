@@ -139,6 +139,7 @@ function TicketsTable({
       columns={TICKET_COLUMNS}
       getRowKey={(ticket) => ticket.id}
       initialQuery={DEFAULT_QUERY}
+      resetKey={activeTab}
       searchPlaceholder="Search by ticket, AWB, user, category..."
       filterControls={[
         {

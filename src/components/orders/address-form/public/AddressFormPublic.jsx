@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { api } from '../../services/api';
-import { extractAddressFormPayload } from '../../utils/addressForms';
+import { api } from '../../../../services/api';
+import { extractAddressFormPayload } from '../../../../utils/addressForms';
 import './AddressFormPublic.css';
 
 const COUNTRIES = [

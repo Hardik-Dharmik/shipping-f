@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { api } from '../../services/api';
-import { extractAddressFormPayload } from '../../utils/addressForms';
+import { api } from '../../../../services/api';
+import { extractAddressFormPayload } from '../../../../utils/addressForms';
 import './AddressFormsList.css';
+import '../../order-list/Orders.css';
+import AddressFormsTable from './AddressFormsTable';
 
 const formatDateTime = (value) => {
   if (!value) return '-';
@@ -63,6 +65,11 @@ function AddressFormsList() {
     navigate(`/orders/create?addressFormId=${form.id}`);
   };
 
+  const canUseInOrder = (form) => {
+    if (!form?.id) return;
+    navigate(`/orders/create?addressFormId=${form.id}`);
+  };
+
   return (
     <div className="address-forms-page">
       <div className="address-forms-container">
@@ -74,7 +81,9 @@ function AddressFormsList() {
           <Link to="/orders/create" className="address-forms-create-link">Create Link</Link>
         </div>
 
-        {loading ? (
+        
+
+        {/* {loading ? (
           <div className="address-forms-state">Loading forms...</div>
         ) : error ? (
           <div className="address-forms-state address-forms-error">
@@ -126,7 +135,8 @@ function AddressFormsList() {
               </tbody>
             </table>
           </div>
-        )}
+        )} */}
+        <AddressFormsTable fetchForms={api.getAddressForms}/>
       </div>
     </div>
   );

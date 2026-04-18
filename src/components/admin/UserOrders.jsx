@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { formatCurrency } from '../../utils/currency';
-import '../orders/Orders.css';
+import '../orders/order-list/Orders.css';
 
 function UserOrders() {
   const { userId } = useParams();

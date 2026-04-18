@@ -1,11 +1,11 @@
 import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { api } from '../../services/api';
+import { api } from '../../../services/api';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { formatCurrency } from '../../utils/currency';
-import { toCreateOrderPrefill, extractAddressFormPayload } from '../../utils/addressForms';
+import { formatCurrency } from '../../../utils/currency';
+import { toCreateOrderPrefill, extractAddressFormPayload } from '../../../utils/addressForms';
 import './CreateOrder.css';
-import ImportantNotes from '../shipping/ImportantNotes';
+import ImportantNotes from '../../shipping/ImportantNotes';
 
 const COUNTRIES = [
   'UAE',
