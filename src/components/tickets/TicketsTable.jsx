@@ -13,11 +13,11 @@ const DEFAULT_QUERY = {
 };
 
 const TICKET_COLUMNS = [
-  { key: 'ticketNumber', label: 'Ticket #', sortKey: 'ticket_number' },
-  { key: 'awb', label: 'AWB Number', sortKey: 'awb_number' },
-  { key: 'user', label: 'User', sortKey: 'username' },
-  { key: 'category', label: 'Category', sortKey: 'category' },
-  { key: 'subcategory', label: 'Subcategory', sortKey: 'subcategory' },
+  { key: 'ticketNumber', label: 'Ticket #' },
+  { key: 'awb', label: 'AWB Number'},
+  { key: 'user', label: 'User'},
+  { key: 'category', label: 'Category'},
+  { key: 'subcategory', label: 'Subcategory'},
   { key: 'status', label: 'Status', sortKey: 'status' },
   { key: 'date', label: 'Date', sortKey: 'created_at' },
   { key: 'action', label: 'Action' }
@@ -56,8 +56,8 @@ function TicketsTable({
   onCountsChange,
   refreshKey
 }) {
-  const fetchTickets = useCallback(async () => {
-    return api.getUserTickets();
+  const fetchTickets = useCallback(async (query) => {
+    return api.getUserTickets(query);
   }, []);
 
   const normalizeResponse = useCallback((response, query) => {

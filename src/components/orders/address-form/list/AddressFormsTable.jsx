@@ -8,7 +8,7 @@ const DEFAULT_QUERY = {
   status: '',
   fromDate: '',
   toDate: '',
-  sortBy: 'createdAt',
+  sortBy: 'created_at',
   sortOrder: 'desc',
   page: 1,
   limit: 10
@@ -19,7 +19,7 @@ const ADDRESS_COLUMNS = [
   { key: 'status', label: 'Status', sortKey: 'status' },
   { key: 'pickup', label: 'Pickup', sortKey: 'pickupCountry' },
   { key: 'destination', label: 'Destination', sortKey: 'destinationCountry' },
-  { key: 'submitted_at', label: 'Submitted At', sortKey: 'createdAt' },
+  { key: 'submitted_at', label: 'Submitted At', sortKey: 'created_at' },
   { key: 'action', label: 'Action' }
 ];
 
@@ -113,18 +113,18 @@ const normalizeAddressFormsResponse = (response, query) => {
 
   if (query.fromDate) {
     const fromDate = new Date(`${query.fromDate}T00:00:00`);
-    normalizedRows = normalizedRows.filter((form) => new Date(form.createdAt) >= fromDate);
+    normalizedRows = normalizedRows.filter((form) => new Date(form.created_at) >= fromDate);
   }
 
   if (query.toDate) {
     const toDate = new Date(`${query.toDate}T23:59:59`);
-    normalizedRows = normalizedRows.filter((form) => new Date(form.createdAt) <= toDate);
+    normalizedRows = normalizedRows.filter((form) => new Date(form.created_at) <= toDate);
   }
 
   if (query.sortBy) {
     normalizedRows = [...normalizedRows].sort((leftForm, rightForm) => {
-      const leftValue = query.sortBy === 'createdAt' ? new Date(leftForm.createdAt) : leftForm[query.sortBy];
-      const rightValue = query.sortBy === 'createdAt' ? new Date(rightForm.createdAt) : rightForm[query.sortBy];
+      const leftValue = query.sortBy === 'created_at' ? new Date(leftForm.created_at) : leftForm[query.sortBy];
+      const rightValue = query.sortBy === 'created_at' ? new Date(rightForm.created_at) : rightForm[query.sortBy];
       return compareValues(leftValue, rightValue, query.sortOrder);
     });
   }
@@ -191,7 +191,7 @@ function AddressFormsTable({ fetchForms }) {
             </td>
             <td>{data.pickupCountry || '-'}</td>
             <td>{data.destinationCountry || '-'}</td>
-            <td>{formatDateTime(data.submittedAt || data.createdAt)}</td>
+            <td>{formatDateTime(data.submittedAt || data.created_at)}</td>
             <td>
               {data.id && canUseInOrder(data.status) ? (
                 <button
