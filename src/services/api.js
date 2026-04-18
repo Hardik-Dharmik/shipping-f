@@ -199,22 +199,22 @@ export const api = {
   },
 
   // Get all users
-  getUsers: async () => {
-    return apiRequest('/api/admin/users', {
+  getUsers: async (params = {}) => {
+    return apiRequest(`/api/admin/users${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
 
   // Get users with order count
-  getUsersWithOrderCount: async () => {
-    return apiRequest('/api/admin/users-with-order-count', {
+  getUsersWithOrderCount: async (params = {}) => {
+    return apiRequest(`/api/admin/users-with-order-count${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
 
   // Get orders for a specific user (admin)
-  getOrdersByUser: async (userId) => {
-    return apiRequest(`/api/shipping/orders/user/${userId}`, {
+  getOrdersByUser: async (userId, params = {}) => {
+    return apiRequest(`/api/shipping/orders/user/${userId}${buildQueryString(params)}`, {
       method: 'GET',
     });
   },
