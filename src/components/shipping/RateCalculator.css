@@ -57,6 +57,13 @@
   font-size: 14px;
 }
 
+.field-note {
+  margin-top: -4px;
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .form-group input {
   padding: 12px;
   border: 1px solid #ddd;
@@ -73,6 +80,37 @@
 
 .form-group input::placeholder {
   color: #bdc3c7;
+}
+
+.invoice-values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.invoice-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.invoice-value-add-btn,
+.invoice-value-remove-btn {
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invoice-value-add-btn:disabled,
+.invoice-value-remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .searchable-dropdown {
@@ -685,6 +723,10 @@
 
   .results-container {
     gap: 20px;
+  }
+
+  .invoice-value-row {
+    grid-template-columns: 1fr;
   }
 
   .offer-card {

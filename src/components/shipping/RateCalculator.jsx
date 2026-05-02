@@ -1,6 +1,7 @@
 import { Fragment, useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
+import { calculateInvoiceTotal, normalizeInvoiceValues } from '../../utils/invoiceValues';
 import { api } from '../../services/api';
 import './RateCalculator.css';
 import ImportantNotes from './ImportantNotes';
@@ -34,6 +35,7 @@ function RateCalculator() {
     destinationPincode: '',
     shipmentValue: ''
   });
+  const [invoiceValues, setInvoiceValues] = useState(['']);
 
   // Boxes array - each box has weight and dimensions
   const [boxes, setBoxes] = useState([
@@ -82,12 +84,43 @@ function RateCalculator() {
     };
   }, []);
 
+  useEffect(() => {
+    const normalizedValues = normalizeInvoiceValues(invoiceValues);
+    const hasAnyValue = normalizedValues.some((value) => value !== '');
+    const totalInvoiceValue = calculateInvoiceTotal(normalizedValues);
+
+    setFormData((prev) => ({
+      ...prev,
+      shipmentValue: hasAnyValue ? totalInvoiceValue.toFixed(2) : '',
+    }));
+  }, [invoiceValues]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const updateInvoiceValue = (index, value) => {
+    setInvoiceValues((prev) =>
+      prev.map((invoiceValue, invoiceIndex) => (invoiceIndex === index ? value : invoiceValue))
+    );
+  };
+
+  const addInvoiceValue = () => {
+    setInvoiceValues((prev) => [...prev, '']);
+  };
+
+  const removeInvoiceValue = (index) => {
+    setInvoiceValues((prev) => {
+      if (prev.length === 1) {
+        return prev;
+      }
+
+      return prev.filter((_, invoiceIndex) => invoiceIndex !== index);
+    });
   };
 
   const filteredCountries = (query) => {
@@ -317,6 +350,7 @@ function RateCalculator() {
       destinationPincode: '',
       shipmentValue: ''
     });
+    setInvoiceValues(['']);
     setBoxes([{
       id: 1,
       quantity: 1,
@@ -568,17 +602,47 @@ function RateCalculator() {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="shipmentValue">Shipment Value ({getCurrencyName()}) *</label>
+                <span className="field-note">This will be visible in label</span>
                 <input
                   type="number"
                   id="shipmentValue"
                   name="shipmentValue"
                   value={formData.shipmentValue}
-                  onChange={handleChange}
+                  readOnly
                   required
                   min="0"
                   step="0.01"
-                  placeholder={`Enter shipment value in ${getCurrencyName()}`}
+                  placeholder={`Total shipment value in ${getCurrencyName()}`}
                 />
+                <div className="invoice-values-list">
+                  {invoiceValues.map((invoiceValue, index) => (
+                    <div key={`shipment-invoice-${index}`} className="invoice-value-row">
+                      <input
+                        type="number"
+                        value={invoiceValue}
+                        onChange={(e) => updateInvoiceValue(index, e.target.value)}
+                        min="0"
+                        step="0.01"
+                        placeholder={`Invoice value ${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        className="invoice-value-remove-btn"
+                        onClick={() => removeInvoiceValue(index)}
+                        disabled={invoiceValues.length === 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="invoice-value-add-btn"
+                    onClick={addInvoiceValue}
+                  >
+                    Add Invoice Value
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label>Units</label>

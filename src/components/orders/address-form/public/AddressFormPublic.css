@@ -50,6 +50,13 @@
   font-size: 14px;
 }
 
+.public-field-note {
+  margin-top: -2px;
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .public-address-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -155,6 +162,36 @@
   gap: 10px;
 }
 
+.public-invoice-values {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-invoice-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.public-invoice-remove-btn,
+.public-invoice-add-btn {
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.public-invoice-remove-btn:disabled,
+.public-invoice-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .public-form-error {
   color: #b42318;
 }
@@ -184,6 +221,10 @@
   }
 
   .public-currency-input {
+    grid-template-columns: 1fr;
+  }
+
+  .public-invoice-row {
     grid-template-columns: 1fr;
   }
 }

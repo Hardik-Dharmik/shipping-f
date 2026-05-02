@@ -1,6 +1,10 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import DataTable from '../../common/DataTable';
 import { formatCurrency } from '../../../utils/currency';
+import { api } from '../../../services/api';
+import { toRebookOrderPayload } from '../../../utils/orderActions';
 
 const DEFAULT_QUERY = {
   search: '',
@@ -30,7 +34,8 @@ const ORDER_COLUMNS = [
   { key: 'status', label: 'Status', sortKey: 'status' },
   { key: 'created', label: 'Created', sortKey: 'created_at' },
   { key: 'awbLabel', label: 'AWB Label' },
-  { key: 'details', label: 'Details' }
+  { key: 'details', label: 'Details' },
+  { key: 'actions', label: 'Actions' }
 ];
 
 const formatDate = (dateString) => {
@@ -95,6 +100,42 @@ function OrdersTable({
   detailsStateBuilder,
   emptyMessage = 'No orders found.'
 }) {
+  const navigate = useNavigate();
+  const [rebookingOrderId, setRebookingOrderId] = useState(null);
+
+  const handlePrefillOrder = (order) => {
+    navigate('/orders/create', {
+      state: {
+        prefillOrder: order,
+      },
+    });
+  };
+
+  const handleRebookOrder = async (order) => {
+    try {
+      setRebookingOrderId(order.id);
+      const payload = toRebookOrderPayload(order);
+      const response = await api.createOrder(payload);
+
+      if (response.success && response.data) {
+        toast.success('Order rebooked successfully!');
+        navigate('/orders/confirmed', {
+          state: {
+            order: response.data,
+          },
+        });
+        return;
+      }
+
+      throw new Error('Invalid response from server');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || 'Failed to rebook order.');
+    } finally {
+      setRebookingOrderId(null);
+    }
+  };
+
   return (
     <DataTable
       fetchData={fetchOrders}
@@ -169,6 +210,32 @@ function OrdersTable({
               >
                 View
               </Link>
+            </td>
+            <td>
+              <div className="order-row-actions">
+                <button
+                  type="button"
+                  className="order-row-action-btn order-row-action-btn-primary"
+                  onClick={() => handlePrefillOrder(order)}
+                >
+                  Revise
+                </button>
+                <button
+                  type="button"
+                  className="order-row-action-btn order-row-action-btn-success"
+                  onClick={() => handleRebookOrder(order)}
+                  disabled={rebookingOrderId === order.id}
+                >
+                  {rebookingOrderId === order.id ? 'Rebooking...' : 'Rebook'}
+                </button>
+                <button
+                  type="button"
+                  className="order-row-action-btn order-row-action-btn-secondary"
+                  onClick={() => handlePrefillOrder(order)}
+                >
+                  Copy
+                </button>
+              </div>
             </td>
           </>
         );

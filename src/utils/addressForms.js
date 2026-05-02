@@ -1,3 +1,5 @@
+import { syncInvoiceProduct } from './invoiceValues';
+
 export const ADDRESS_FIELD_KEYS = {
   companyName: ['companyName', 'company_name', 'company', 'organization'],
   country: ['country', 'countryCode', 'country_code'],
@@ -16,6 +18,7 @@ const PRODUCT_FIELD_KEYS = {
   name: ['name', 'productName', 'product_name', 'description'],
   currency: ['currency', 'currencyCode', 'currency_code'],
   unitPrice: ['unitPrice', 'unit_price', 'invoiceValue', 'invoice_value', 'value', 'price'],
+  invoiceValues: ['invoiceValues', 'invoice_values', 'invoiceAmounts', 'invoice_amounts', 'values'],
 };
 
 const ADDRESS_FORM_PATHS = {
@@ -58,11 +61,22 @@ const normalizeAddress = (address) => ({
   email: String(pickFirstValue(address, ADDRESS_FIELD_KEYS.email)),
 });
 
-const normalizeProduct = (product, index) => ({
+const normalizeProduct = (product, index) => syncInvoiceProduct({
   id: Number(product?.id) || index + 1,
   name: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.name)),
   currency: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.currency) || 'AED'),
   unitPrice: String(pickFirstValue(product, PRODUCT_FIELD_KEYS.unitPrice)),
+  invoiceValues: Array.isArray(product?.invoiceValues)
+    ? product.invoiceValues
+    : Array.isArray(product?.invoice_values)
+      ? product.invoice_values
+      : Array.isArray(product?.invoiceAmounts)
+        ? product.invoiceAmounts
+        : Array.isArray(product?.invoice_amounts)
+          ? product.invoice_amounts
+          : Array.isArray(product?.values)
+            ? product.values
+            : [],
 });
 
 export const extractAddressFormPayload = (rawData) => {

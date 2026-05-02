@@ -162,6 +162,13 @@
   font-size: 14px;
 }
 
+.field-note {
+  margin-top: -4px;
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .form-group .required {
   color: #e74c3c;
 }
@@ -356,6 +363,37 @@
 
 .currency-input-group input[type="number"] {
   flex: 1;
+}
+
+.invoice-values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.invoice-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.invoice-value-add-btn,
+.invoice-value-remove-btn {
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invoice-value-add-btn:disabled,
+.invoice-value-remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Package Section Styles */
@@ -772,6 +810,10 @@
     justify-content: center;
   }
 
+  .invoice-value-row {
+    grid-template-columns: 1fr;
+  }
+
   .calculation-row {
     flex-direction: column;
     align-items: flex-start;
@@ -889,6 +931,52 @@
 .btn-modal-close:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.app-modal--notice {
+  max-width: 980px;
+}
+
+.pre-create-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pre-create-notice-card {
+  border: 1px solid #d7e3fb;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+  padding: 16px 18px;
+}
+
+.pre-create-notice-card p {
+  margin: 0;
+  color: #2a3d63;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.app-modal-secondary-btn {
+  padding: 12px 24px;
+  background: #eef2f7;
+  color: #415168;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.app-modal-secondary-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.app-modal-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .quotes-table {

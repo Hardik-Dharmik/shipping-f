@@ -88,6 +88,44 @@
   background-color: #1d4ed8;
 }
 
+.order-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-row-action-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.order-row-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.order-row-action-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.order-row-action-btn-primary {
+  background: #2563eb;
+}
+
+.order-row-action-btn-success {
+  background: #16a34a;
+}
+
+.order-row-action-btn-secondary {
+  background: #64748b;
+}
+
 .no-file {
   color: #bdc3c7;
   font-style: italic;

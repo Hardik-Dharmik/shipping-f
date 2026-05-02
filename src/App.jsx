@@ -21,6 +21,7 @@ import Orders from './components/orders/order-list/Orders';
 import CreateOrder from './components/orders/create-order/CreateOrder';
 import AddressFormsList from './components/orders/address-form/list/AddressFormsList';
 import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
+import ShipmentConfirmed from './components/orders/shipment-confirmed/ShipmentConfirmed';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -167,6 +168,14 @@ function AppRoutes() {
                             <Orders />
                           </UserRoute>
                         } 
+                      />
+                      <Route
+                        path="/orders/confirmed"
+                        element={
+                          <UserRoute>
+                            <ShipmentConfirmed />
+                          </UserRoute>
+                        }
                       />
                       <Route
                         path="/orders/address-forms"

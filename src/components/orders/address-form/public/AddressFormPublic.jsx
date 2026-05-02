@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api } from '../../../../services/api';
 import { extractAddressFormPayload } from '../../../../utils/addressForms';
+import { calculateInvoiceTotal, syncInvoiceProduct } from '../../../../utils/invoiceValues';
 import './AddressFormPublic.css';
 
 const COUNTRIES = [
@@ -56,6 +57,7 @@ const INITIAL_PRODUCT = {
   name: '',
   currency: 'AED',
   unitPrice: '',
+  invoiceValues: [''],
 };
 
 function AddressFields({ prefix, value, errors, onChange, disabled }) {
@@ -225,6 +227,8 @@ function AddressFields({ prefix, value, errors, onChange, disabled }) {
 }
 
 function ProductFields({ product, errors, onChange, disabled }) {
+  const totalInvoiceValue = product.unitPrice || '';
+
   return (
     <section className="public-address-section">
       <div className="public-section-header">
@@ -261,6 +265,7 @@ function ProductFields({ product, errors, onChange, disabled }) {
               <label htmlFor={`product-${product.id}-unitPrice`}>
                 Total Invoice Value <span className="required">*</span>
               </label>
+              <span className="public-field-note">This will be visible in label</span>
               <div className="public-currency-input">
                 <select
                   aria-label="Product currency"
@@ -277,8 +282,8 @@ function ProductFields({ product, errors, onChange, disabled }) {
                 <input
                   type="number"
                   id={`product-${product.id}-unitPrice`}
-                  value={product.unitPrice}
-                  onChange={(e) => onChange('unitPrice', e.target.value)}
+                  value={totalInvoiceValue}
+                  readOnly
                   disabled={disabled}
                   min="0"
                   step="0.01"
@@ -289,6 +294,41 @@ function ProductFields({ product, errors, onChange, disabled }) {
               {errors[`products.${product.id}.unitPrice`] && (
                 <span className="public-error-message">{errors[`products.${product.id}.unitPrice`]}</span>
               )}
+            </div>
+
+            <div className="public-form-group public-form-group-wide">
+              <label>Invoice Values</label>
+              <div className="public-invoice-values">
+                {product.invoiceValues.map((invoiceValue, index) => (
+                  <div key={`product-${product.id}-invoice-${index}`} className="public-invoice-row">
+                    <input
+                      type="number"
+                      value={invoiceValue}
+                      onChange={(e) => onChange('invoiceValue', e.target.value, index)}
+                      disabled={disabled}
+                      min="0"
+                      step="0.01"
+                      placeholder={`Invoice value ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      className="public-invoice-remove-btn"
+                      onClick={() => onChange('removeInvoiceValue', '', index)}
+                      disabled={disabled || product.invoiceValues.length === 1}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="public-invoice-add-btn"
+                  onClick={() => onChange('addInvoiceValue')}
+                  disabled={disabled}
+                >
+                  Add Invoice Value
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -355,7 +395,8 @@ function AddressFormPublic() {
   };
 
   const updateProduct = (field, value) => {
-    const errorKey = `products.${product.id}.${field}`;
+    const normalizedField = field === 'invoiceValue' ? 'unitPrice' : field;
+    const errorKey = `products.${product.id}.${normalizedField}`;
     if (errors[errorKey]) {
       setErrors((prev) => ({
         ...prev,
@@ -363,7 +404,48 @@ function AddressFormPublic() {
       }));
     }
 
-    setProduct((prev) => ({ ...prev, [field]: value }));
+    setProduct((prev) => syncInvoiceProduct({ ...prev, [field]: value }));
+  };
+
+  const updateInvoiceValue = (index, value) => {
+    const errorKey = `products.${product.id}.unitPrice`;
+    if (errors[errorKey]) {
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: '',
+      }));
+    }
+
+    setProduct((prev) =>
+      syncInvoiceProduct({
+        ...prev,
+        invoiceValues: prev.invoiceValues.map((invoiceValue, invoiceIndex) =>
+          invoiceIndex === index ? value : invoiceValue
+        ),
+      })
+    );
+  };
+
+  const addInvoiceValue = () => {
+    setProduct((prev) =>
+      syncInvoiceProduct({
+        ...prev,
+        invoiceValues: [...prev.invoiceValues, ''],
+      })
+    );
+  };
+
+  const removeInvoiceValue = (index) => {
+    setProduct((prev) => {
+      if (prev.invoiceValues.length === 1) {
+        return prev;
+      }
+
+      return syncInvoiceProduct({
+        ...prev,
+        invoiceValues: prev.invoiceValues.filter((_, invoiceIndex) => invoiceIndex !== index),
+      });
+    });
   };
 
   const validateAddress = (type, address) => {
@@ -402,7 +484,7 @@ function AddressFormPublic() {
     if (!product.name.trim()) {
       productErrors[`products.${product.id}.name`] = 'Product name is required';
     }
-    if (!product.unitPrice || Number(product.unitPrice) <= 0) {
+    if (calculateInvoiceTotal(product.invoiceValues) <= 0) {
       productErrors[`products.${product.id}.unitPrice`] = 'Invoice value must be greater than 0';
     }
 
@@ -426,7 +508,7 @@ function AddressFormPublic() {
       await api.submitPublicAddressForm(formCode, {
         pickupAddress,
         destinationAddress,
-        products: [product],
+        products: [syncInvoiceProduct(product)],
       });
       setSubmitted(true);
       toast.success('Address details submitted successfully.');
@@ -488,7 +570,24 @@ function AddressFormPublic() {
           <ProductFields
             product={product}
             errors={errors}
-            onChange={updateProduct}
+            onChange={(field, value, index) => {
+              if (field === 'addInvoiceValue') {
+                addInvoiceValue();
+                return;
+              }
+
+              if (field === 'removeInvoiceValue') {
+                removeInvoiceValue(index);
+                return;
+              }
+
+              if (field === 'invoiceValue') {
+                updateInvoiceValue(index, value);
+                return;
+              }
+
+              updateProduct(field, value);
+            }}
             disabled={submitted}
           />
 

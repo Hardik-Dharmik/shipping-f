@@ -1,0 +1,216 @@
+.shipment-confirmed-page {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 28%),
+    linear-gradient(180deg, #f6f9ff 0%, #eef4ff 100%);
+}
+
+.shipment-confirmed-card {
+  width: min(960px, 100%);
+  background: #ffffff;
+  border: 1px solid #dbe7ff;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 24px 60px rgba(37, 99, 235, 0.12);
+}
+
+.shipment-confirmed-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shipment-confirmed-card h1 {
+  margin: 18px 0 10px;
+  color: #102a56;
+  font-size: 36px;
+  line-height: 1.15;
+}
+
+.shipment-confirmed-subtitle {
+  margin: 0;
+  color: #4b5f83;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.shipment-confirmed-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.shipment-confirmed-panel,
+.shipment-confirmed-fallback {
+  border: 1px solid #dce6fb;
+  border-radius: 18px;
+  padding: 22px;
+  background: linear-gradient(180deg, #fcfdff 0%, #f5f8ff 100%);
+}
+
+.shipment-confirmed-panel h2 {
+  margin: 0 0 14px;
+  color: #1d3b73;
+  font-size: 18px;
+}
+
+.shipment-confirmed-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6ecfa;
+  color: #58709a;
+  font-size: 14px;
+}
+
+.shipment-confirmed-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.shipment-confirmed-row strong {
+  color: #102a56;
+  text-align: right;
+}
+
+.shipment-confirmed-link {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.shipment-confirmed-link:hover {
+  text-decoration: underline;
+}
+
+.shipment-confirmed-fallback {
+  margin-top: 28px;
+}
+
+.shipment-confirmed-fallback p {
+  margin: 0;
+  color: #4b5f83;
+  line-height: 1.6;
+}
+
+.shipment-confirmed-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.shipment-confirmed-notice {
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid transparent;
+}
+
+.shipment-confirmed-notice p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.shipment-confirmed-notice-warning {
+  background: #fff59d;
+  border-color: #facc15;
+}
+
+.shipment-confirmed-notice-success {
+  background: #86efac;
+  border-color: #4ade80;
+}
+
+.shipment-confirmed-notice-red-text p {
+  color: #b91c1c;
+}
+
+.shipment-confirmed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.shipment-confirmed-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.shipment-confirmed-btn:hover {
+  transform: translateY(-1px);
+}
+
+.shipment-confirmed-btn-primary {
+  background: #1d4ed8;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.22);
+}
+
+.shipment-confirmed-btn-secondary {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.shipment-confirmed-btn-tertiary {
+  background: #f8fafc;
+  color: #334155;
+}
+
+@media (max-width: 768px) {
+  .shipment-confirmed-page {
+    padding: 16px;
+    align-items: flex-start;
+  }
+
+  .shipment-confirmed-card {
+    padding: 24px;
+    border-radius: 18px;
+  }
+
+  .shipment-confirmed-card h1 {
+    font-size: 28px;
+  }
+
+  .shipment-confirmed-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shipment-confirmed-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .shipment-confirmed-row strong {
+    text-align: left;
+  }
+
+  .shipment-confirmed-actions {
+    flex-direction: column;
+  }
+
+  .shipment-confirmed-btn {
+    width: 100%;
+  }
+}

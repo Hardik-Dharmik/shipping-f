@@ -17,6 +17,7 @@ function Header() {
     const path = location.pathname;
     if (path === '/calculate-rate') return 'Rate Calculator';
     if (path === '/orders') return 'Orders';
+    if (path === '/orders/confirmed') return 'Shipment Confirmed';
     if (path === '/admin/signups/pending') return 'Pending Approvals';
     if (path === '/admin/users') return 'Users';
     if (path === '/admin/users/orders') return 'User Orders';

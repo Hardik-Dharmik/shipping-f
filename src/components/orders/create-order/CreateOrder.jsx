@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../../services/api';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { formatCurrency } from '../../../utils/currency';
 import { toCreateOrderPrefill, extractAddressFormPayload } from '../../../utils/addressForms';
+import { calculateInvoiceTotal, syncInvoiceProduct } from '../../../utils/invoiceValues';
+import { toCreateOrderFormPrefill } from '../../../utils/orderActions';
 import './CreateOrder.css';
 import ImportantNotes from '../../shipping/ImportantNotes';
 
@@ -124,6 +126,15 @@ const calculateChargeableWeight = (actualWeight, length, breadth, height) => {
   return Math.max(actualWeight || 0, volumetricWeight);
 };
 
+const PRE_CREATE_ORDER_NOTICES = [
+  "NOTE :- VERY HIGH VALUE SHIPMENT , PLEASE INSURE IT EXTERNALLY OUR QUOTATIONS DOESN'T INCLUDE INSUARANCE CHARGES , MAXIMUM LIABILITY TOWARDS ANY LOSS OR DAMAGE WILL BE LIMITED TO 100 USD ONLY FROM AWATMCLLC.",
+  'ALSO INFORM SHIPPER TO APPLY THE CORRECT LABELS ON ALL THE SIDES OF THE BOXES , ATLEASE 1 COPIES ON EACH SIDE.',
+  'Dear Customer ,\n\nKindly confirm on the last page of self dispatch link option to get your shipment collected.',
+  'Please note that the collection has been registered online with DHL under the pickup reference number\nAttached is the AWB, Please take the print out of the attached AWB and hand it over to DHL Courier person along with 3 copies of Invoice and packing list,\nPls call DHL office and connect the shipment ASAP, Ensure that you quote the pickup reference number\n\nwhile calling DHL for the collection.\nKindly inform DHL that this is an online booking.\n\nYour courier Pickup has been scheduled as follows:',
+  'The UAE Ministry of Foreign Affairs and International Cooperation (MOFAIC) has issued a notice on the launch of eDAS 2.0, an online platform for attesting documents required for imported goods. Effective September 1, 2024, companies in the UAE should meet the following requirements to ensure smooth clearance of goods into the UAE\n• Registration on eDAS 2.0: All companies, even those previously registered on eDAS, must register on eDAS 2.0 using this link: https://www.mofa.gov.ae/en/Services/EDAS-Attestation-v2 and complete manual registration using their Company Trade License details.\n• Attestation documents: The following documents are required to be attested:\n1. Commercial Invoice (AED 150/- + VAT) and Service fees\n2. COO (Country of Origin) - If unavailable then MOFAIC can create one for AED 150/- + VAT and Service fees\n\nPlease adhere to the guidelines to avoid clearance delays. Customers not registered on EDAS 2.0 will be unable to have their Invoices attested with MOFAIC and will end up paying penalty, if documents are not attested within 14 days.\nThe Ministry of Foreign Affairs and International Cooperation (MOFAIC), United Arab Emirates, has introduced a system for electronic attestation of Import commercial invoices.\nAll customers will require to get the Import Commercial invoices attested from MOFAIC If the value is more than 10000 AED for Customs Declarations with Dubai Customs effective from 01st February 2023\n\nhttps://www.mofaic.gov.ae/en/Services/attestation',
+  'We are experiencing increased cases of Port/Airport Congestion, Equipment shortages and Capacity constraints; subsequent adverse impact to truck and landside capabilities as well. This problem is across Airports / Ports and terminals worldwide. AWAT MARINE CARGO LLC endeavors to meet all estimated schedules provided. However, we will not accept any liabilities for changes in schedules or transit delay caused as a result of the aforesaid challenges',
+];
+
 const INITIAL_ORDER_FORM_DATA = {
   pickupCompanyName: '',
   pickupCountry: '',
@@ -151,18 +162,19 @@ const INITIAL_ORDER_FORM_DATA = {
 
 function CreateOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const addressFormIdFromQuery = searchParams.get('addressFormId');
 
   const [formData, setFormData] = useState(INITIAL_ORDER_FORM_DATA);
 
   const [products, setProducts] = useState([
-    {
+    syncInvoiceProduct({
       id: 1,
       name: '',
       currency: 'AED',
       unitPrice: ''
-    }
+    })
   ]);
   const [packages, setPackages] = useState([
     {
@@ -190,6 +202,8 @@ function CreateOrder() {
   const [rateError, setRateError] = useState(null);
   const [creatingQuoteIndex, setCreatingQuoteIndex] = useState(null);
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
+  const [preCreateModalOpen, setPreCreateModalOpen] = useState(false);
+  const [pendingQuoteSelection, setPendingQuoteSelection] = useState(null);
   const [creatingAddressFormLink, setCreatingAddressFormLink] = useState(false);
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [selectedAddressFormId, setSelectedAddressFormId] = useState('');
@@ -224,6 +238,30 @@ function CreateOrder() {
   }, [formData.pickupCountry, formData.deliveryCountry]);
 
   useEffect(() => {
+    const prefillOrder = location.state?.prefillOrder;
+    if (!prefillOrder) return;
+
+    const prefill = toCreateOrderFormPrefill(prefillOrder);
+    setSelectedAddressFormId('');
+    setFormData(prefill.formData);
+    setProducts(prefill.products);
+    setPackages(prefill.packages);
+    setCompliance(prefill.compliance);
+    setInvoiceFiles([]);
+    setPackingListFiles([]);
+    setErrors({});
+    setRateResult(null);
+    setRateError(null);
+    setExpandedQuoteIndex(null);
+    setIsModalOpen(false);
+    setPreCreateModalOpen(false);
+    setPendingQuoteSelection(null);
+
+    toast.success('Order details loaded into the create order form.');
+    navigate(location.pathname, { replace: true });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
     const addressFormId = searchParams.get('addressFormId');
     if (!addressFormId) return;
 
@@ -236,7 +274,7 @@ function CreateOrder() {
         setSelectedAddressFormId(addressFormId);
         setFormData((prev) => ({ ...prev, ...prefill }));
         if (parsed.products.length > 0) {
-          setProducts(parsed.products);
+          setProducts(parsed.products.map((product) => syncInvoiceProduct(product)));
         }
         toast.success(`Address form ${parsed.code || addressFormId} loaded.`);
       } catch (error) {
@@ -405,7 +443,7 @@ function CreateOrder() {
       if (!product.name.trim()) {
         newErrors[`product_${product.id}_name`] = 'Product name is required';
       }
-      if (!product.unitPrice || parseFloat(product.unitPrice) <= 0) {
+      if (calculateInvoiceTotal(product.invoiceValues) <= 0) {
         newErrors[`product_${product.id}_unitPrice`] = 'Total invoice value must be greater than 0';
       }
     });
@@ -432,7 +470,7 @@ function CreateOrder() {
 
   const calculateShipmentValue = () => {
     return products.reduce((total, product) => {
-      const invoiceValue = parseFloat(product.unitPrice) || 0;
+      const invoiceValue = calculateInvoiceTotal(product.invoiceValues);
       return total + invoiceValue;
     }, 0);
   };
@@ -442,7 +480,26 @@ function CreateOrder() {
     return currencies.size === 1 ? [...currencies][0] : null;
   };
 
-  const handleCreateOrder = async (selectedQuote, quoteIndex) => {
+  const handleCreateOrder = (selectedQuote, quoteIndex) => {
+    setPendingQuoteSelection({ selectedQuote, quoteIndex });
+    setPreCreateModalOpen(true);
+  };
+
+  const handleClosePreCreateModal = () => {
+    if (creatingQuoteIndex !== null) {
+      return;
+    }
+
+    setPreCreateModalOpen(false);
+    setPendingQuoteSelection(null);
+  };
+
+  const handleConfirmCreateOrder = async () => {
+    if (!pendingQuoteSelection) {
+      return;
+    }
+
+    const { selectedQuote, quoteIndex } = pendingQuoteSelection;
     setCreatingQuoteIndex(quoteIndex);
 
     // Prepare boxes
@@ -462,6 +519,21 @@ function CreateOrder() {
     }, 0);
 
     const exportDeclarationCharge = compliance.exportDeclaration ? 120 : 0;
+    const shipmentValue = calculateShipmentValue();
+    const selectedCurrency = getSelectedCurrency() || products[0]?.currency || selectedQuote.currency || 'AED';
+    const detailedProducts = products.map((product) =>
+      syncInvoiceProduct({
+        ...product,
+        invoiceValues: product.invoiceValues,
+      })
+    );
+    const detailedPackages = packages.map((pkg, index) => ({
+      id: pkg.id || index + 1,
+      actualWeight: Number(pkg.actualWeight) || 0,
+      length: Number(pkg.length) || 0,
+      breadth: Number(pkg.breadth) || 0,
+      height: Number(pkg.height) || 0,
+    }));
   
     const orderObject = {
       pickupCountry: formData.pickupCountry,
@@ -470,12 +542,58 @@ function CreateOrder() {
       destinationPincode: formData.deliveryPincode,
       actualWeight: Number(actualWeight.toFixed(2)),
       boxes,
-      shipmentValue: calculateShipmentValue(),
+      shipmentValue: shipmentValue,
       requireBOE: compliance.requireBOE,
       requireDO: compliance.requireDO,
       exportDeclaration: compliance.exportDeclaration,
       dutyExemption: compliance.dutyExemption,
       temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
+      pickupCompanyName: formData.pickupCompanyName,
+      pickupMobileNo: formData.pickupMobileNo,
+      pickupFullName: formData.pickupFullName,
+      pickupCompleteAddress: formData.pickupCompleteAddress,
+      pickupLandmark: formData.pickupLandmark,
+      pickupCity: formData.pickupCity,
+      pickupState: formData.pickupState,
+      pickupAlternateNo: formData.pickupAlternateNo,
+      pickupEmail: formData.pickupEmail,
+      deliveryCompanyName: formData.deliveryCompanyName,
+      deliveryMobileNo: formData.deliveryMobileNo,
+      deliveryFullName: formData.deliveryFullName,
+      deliveryCompleteAddress: formData.deliveryCompleteAddress,
+      deliveryLandmark: formData.deliveryLandmark,
+      deliveryCity: formData.deliveryCity,
+      deliveryState: formData.deliveryState,
+      deliveryAlternateNo: formData.deliveryAlternateNo,
+      deliveryEmail: formData.deliveryEmail,
+      pickupAddress: {
+        companyName: formData.pickupCompanyName,
+        country: formData.pickupCountry,
+        pincode: formData.pickupPincode,
+        mobileNo: formData.pickupMobileNo,
+        fullName: formData.pickupFullName,
+        completeAddress: formData.pickupCompleteAddress,
+        landmark: formData.pickupLandmark,
+        city: formData.pickupCity,
+        state: formData.pickupState,
+        alternateNo: formData.pickupAlternateNo,
+        email: formData.pickupEmail,
+      },
+      destinationAddress: {
+        companyName: formData.deliveryCompanyName,
+        country: formData.deliveryCountry,
+        pincode: formData.deliveryPincode,
+        mobileNo: formData.deliveryMobileNo,
+        fullName: formData.deliveryFullName,
+        completeAddress: formData.deliveryCompleteAddress,
+        landmark: formData.deliveryLandmark,
+        city: formData.deliveryCity,
+        state: formData.deliveryState,
+        alternateNo: formData.deliveryAlternateNo,
+        email: formData.deliveryEmail,
+      },
+      products: detailedProducts,
+      packages: detailedPackages,
       carrier: {
         name: selectedQuote.carrier,
         cost: selectedQuote.cost,
@@ -490,6 +608,9 @@ function CreateOrder() {
         exportDeclarationCharge,
         dutyExemption: compliance.dutyExemption,
         temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn
+      },
+      orderMeta: {
+        shipmentValueCurrency: selectedCurrency,
       },
       addressFormId: selectedAddressFormId || null,
     };
@@ -514,11 +635,18 @@ function CreateOrder() {
       
       if (response.success && response.data) {
         toast.success('Shipment created successfully!');
+        const createdOrder = response.data;
         setSelectedAddressFormId('');
+        setPreCreateModalOpen(false);
+        setPendingQuoteSelection(null);
         handleReset(false);
         setLoading(false);
         setIsModalOpen(false);
-        navigate('/orders');
+        navigate('/orders/confirmed', {
+          state: {
+            order: createdOrder,
+          },
+        });
       } else {
         throw new Error('Invalid response from server');
       }
@@ -623,7 +751,7 @@ function CreateOrder() {
     setFormData(INITIAL_ORDER_FORM_DATA);
   
     setProducts([
-      { id: 1, name: '', currency: 'AED', unitPrice: '' }
+      syncInvoiceProduct({ id: 1, name: '', currency: 'AED', unitPrice: '' })
     ]);
   
     setPackages([
@@ -638,6 +766,8 @@ function CreateOrder() {
     setCreatingQuoteIndex(null);
     setExpandedQuoteIndex(null);
     setIsModalOpen(false);
+    setPreCreateModalOpen(false);
+    setPendingQuoteSelection(null);
     if (showToast) {
       toast.info('Form reset successfully');
     }
@@ -861,7 +991,7 @@ function CreateOrder() {
     setProducts(prevProducts =>
       prevProducts.map(product =>
         product.id === productId
-          ? { ...product, [field]: value }
+          ? syncInvoiceProduct({ ...product, [field]: value })
           : product
       )
     );
@@ -875,16 +1005,69 @@ function CreateOrder() {
     }
   };
 
+  const handleInvoiceValueChange = (productId, invoiceIndex, value) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) => {
+        if (product.id !== productId) {
+          return product;
+        }
+
+        return syncInvoiceProduct({
+          ...product,
+          invoiceValues: product.invoiceValues.map((invoiceValue, currentIndex) =>
+            currentIndex === invoiceIndex ? value : invoiceValue
+          ),
+        });
+      })
+    );
+
+    const errorKey = `product_${productId}_unitPrice`;
+    if (errors[errorKey]) {
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: '',
+      }));
+    }
+  };
+
+  const addInvoiceValue = (productId) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === productId
+          ? syncInvoiceProduct({
+              ...product,
+              invoiceValues: [...product.invoiceValues, ''],
+            })
+          : product
+      )
+    );
+  };
+
+  const removeInvoiceValue = (productId, invoiceIndex) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) => {
+        if (product.id !== productId || product.invoiceValues.length === 1) {
+          return product;
+        }
+
+        return syncInvoiceProduct({
+          ...product,
+          invoiceValues: product.invoiceValues.filter((_, currentIndex) => currentIndex !== invoiceIndex),
+        });
+      })
+    );
+  };
+
   const addProduct = () => {
     const newId = Math.max(...products.map(p => p.id), 0) + 1;
     setProducts(prevProducts => [
       ...prevProducts,
-      {
+      syncInvoiceProduct({
         id: newId,
         name: '',
         currency: 'AED',
         unitPrice: ''
-      }
+      })
     ]);
   };
 
@@ -985,6 +1168,7 @@ function CreateOrder() {
                 <label htmlFor={`product_${product.id}_unitPrice`}>
                   Total Invoice Value <span className="required">*</span>
                 </label>
+                <span className="field-note">This will be visible in label</span>
                 <div className="currency-input-group">
                   <select
                     aria-label="Currency"
@@ -1000,16 +1184,45 @@ function CreateOrder() {
                     type="number"
                     id={`product_${product.id}_unitPrice`}
                     value={product.unitPrice}
-                    onChange={(e) => handleProductChange(product.id, 'unitPrice', e.target.value)}
                     placeholder="0.00"
                     min="0"
                     step="0.01"
+                    readOnly
                     className={errors[`product_${product.id}_unitPrice`] ? 'error' : ''}
                   />
                 </div>
                 {errors[`product_${product.id}_unitPrice`] && (
                   <span className="error-message">{errors[`product_${product.id}_unitPrice`]}</span>
                 )}
+                <div className="invoice-values-list">
+                  {product.invoiceValues.map((invoiceValue, invoiceIndex) => (
+                    <div key={`product_${product.id}_invoice_${invoiceIndex}`} className="invoice-value-row">
+                      <input
+                        type="number"
+                        value={invoiceValue}
+                        onChange={(e) => handleInvoiceValueChange(product.id, invoiceIndex, e.target.value)}
+                        placeholder={`Invoice value ${invoiceIndex + 1}`}
+                        min="0"
+                        step="0.01"
+                      />
+                      <button
+                        type="button"
+                        className="invoice-value-remove-btn"
+                        onClick={() => removeInvoiceValue(product.id, invoiceIndex)}
+                        disabled={product.invoiceValues.length === 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="invoice-value-add-btn"
+                    onClick={() => addInvoiceValue(product.id)}
+                  >
+                    Add Invoice Value
+                  </button>
+                </div>
               </div>
               {product.unitPrice && (
                 <div className="form-group">
@@ -1703,6 +1916,48 @@ function CreateOrder() {
                   onClick={() => setIsModalOpen(false)}
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {preCreateModalOpen && (
+          <div className="app-modal-overlay" onClick={handleClosePreCreateModal}>
+            <div className="app-modal app-modal--wide app-modal--notice" onClick={(e) => e.stopPropagation()}>
+              <div className="app-modal-header">
+                <h2 className="app-modal-title">Confirm Before Creating Order</h2>
+                <button
+                  className="app-modal-close"
+                  onClick={handleClosePreCreateModal}
+                  disabled={creatingQuoteIndex !== null}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="app-modal-body">
+                <div className="pre-create-notice-list">
+                  {PRE_CREATE_ORDER_NOTICES.map((notice, index) => (
+                    <div key={`pre-create-notice-${index}`} className="pre-create-notice-card">
+                      <p>{notice}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="app-modal-footer">
+                <button
+                  className="app-modal-secondary-btn"
+                  onClick={handleClosePreCreateModal}
+                  disabled={creatingQuoteIndex !== null}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="app-modal-primary-btn"
+                  onClick={handleConfirmCreateOrder}
+                  disabled={creatingQuoteIndex !== null}
+                >
+                  {creatingQuoteIndex !== null ? 'Creating Order...' : 'Continue'}
                 </button>
               </div>
             </div>
