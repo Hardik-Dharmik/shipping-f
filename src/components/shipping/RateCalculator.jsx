@@ -2,6 +2,11 @@ import { Fragment, useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
 import { calculateInvoiceTotal, normalizeInvoiceValues } from '../../utils/invoiceValues';
+import {
+  normalizeSavedBoxDetail,
+  normalizeSavedBoxDetailsList,
+  toSavedBoxDetailsPayload,
+} from '../../utils/boxDetails';
 import { api } from '../../services/api';
 import './RateCalculator.css';
 import ImportantNotes from './ImportantNotes';
@@ -62,6 +67,10 @@ function RateCalculator() {
   const [rateResult, setRateResult] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [savingBoxDetails, setSavingBoxDetails] = useState(false);
+  const [loadingSavedBoxDetails, setLoadingSavedBoxDetails] = useState(false);
+  const [savedBoxDetails, setSavedBoxDetails] = useState([]);
+  const [latestSavedCode, setLatestSavedCode] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
   
@@ -82,6 +91,22 @@ function RateCalculator() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchSavedBoxDetails = async () => {
+      try {
+        setLoadingSavedBoxDetails(true);
+        const response = await api.getBoxDetails();
+        setSavedBoxDetails(normalizeSavedBoxDetailsList(response));
+      } catch (fetchError) {
+        console.error('Fetch saved box details error:', fetchError);
+      } finally {
+        setLoadingSavedBoxDetails(false);
+      }
+    };
+
+    fetchSavedBoxDetails();
   }, []);
 
   useEffect(() => {
@@ -214,6 +239,79 @@ function RateCalculator() {
     setBoxes(boxes.map(box => 
       box.id === boxId ? { ...box, [field]: value } : box
     ));
+  };
+
+  const applySavedBoxDetail = (savedBoxDetail) => {
+    if (!savedBoxDetail?.boxes?.length) {
+      toast.error('No box details found for this code.');
+      return;
+    }
+
+    setBoxes(
+      savedBoxDetail.boxes.map((box, index) => ({
+        id: index + 1,
+        quantity: box.quantity || '1',
+        actualWeight: box.actualWeight || '',
+        length: box.length || '',
+        breadth: box.breadth || '',
+        height: box.height || '',
+      }))
+    );
+    setWeightUnit(savedBoxDetail.weightUnit || 'kg');
+    setDimensionUnit(savedBoxDetail.dimensionUnit || 'cm');
+    setLatestSavedCode(savedBoxDetail.code || '');
+    toast.success(`Loaded saved box detail${savedBoxDetail.code ? ` ${savedBoxDetail.code}` : ''}.`);
+  };
+
+  const handleSaveBoxDetails = async () => {
+    const hasInvalidBox = boxes.some((box) => {
+      const quantity = parseInt(box.quantity, 10);
+      const actualWeight = parseFloat(box.actualWeight);
+      const length = parseFloat(box.length);
+      const breadth = parseFloat(box.breadth);
+      const height = parseFloat(box.height);
+
+      return (
+        !Number.isFinite(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(actualWeight) ||
+        actualWeight <= 0 ||
+        !Number.isFinite(length) ||
+        length <= 0 ||
+        !Number.isFinite(breadth) ||
+        breadth <= 0 ||
+        !Number.isFinite(height) ||
+        height <= 0
+      );
+    });
+
+    if (hasInvalidBox) {
+      toast.error('Enter quantity, weight, and dimensions for all boxes before saving.');
+      return;
+    }
+
+    try {
+      setSavingBoxDetails(true);
+      const response = await api.saveBoxDetails(
+        toSavedBoxDetailsPayload(boxes, weightUnit, dimensionUnit)
+      );
+      const savedDetail = normalizeSavedBoxDetail(response);
+      setLatestSavedCode(savedDetail.code || '');
+      setSavedBoxDetails((prev) => {
+        const nextItems = [savedDetail, ...prev.filter((item) => item.code !== savedDetail.code)];
+        return nextItems;
+      });
+      toast.success(
+        savedDetail.code
+          ? `Box details saved. Code: ${savedDetail.code}`
+          : 'Box details saved successfully.'
+      );
+    } catch (saveError) {
+      console.error('Save box details error:', saveError);
+      toast.error(saveError.message || 'Failed to save box details.');
+    } finally {
+      setSavingBoxDetails(false);
+    }
   };
 
   const getPickupFieldLabel = () => {
@@ -367,6 +465,7 @@ function RateCalculator() {
     setRequireDO(false);
     setPickupDropdownOpen(false);
     setDestinationDropdownOpen(false);
+    setLatestSavedCode('');
     setResult(null);
     setError(null);
     setIsModalOpen(false);
@@ -674,22 +773,125 @@ function RateCalculator() {
           <div className="form-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0 }}>Boxes</h2>
-              <button
-                type="button"
-                onClick={addBox}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#3498db',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
-              >
-                + Add Box
-              </button>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveBoxDetails}
+                  disabled={savingBoxDetails}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: savingBoxDetails ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    opacity: savingBoxDetails ? 0.7 : 1
+                  }}
+                >
+                  {savingBoxDetails ? 'Saving...' : 'Save Box Details'}
+                </button>
+                <button
+                  type="button"
+                  onClick={addBox}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  + Add Box
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              marginBottom: '18px',
+              padding: '14px 16px',
+              border: '1px solid #d8e4f0',
+              borderRadius: '8px',
+              backgroundColor: '#f8fbff'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <strong style={{ color: '#1f4f82' }}>Saved box details</strong>
+                  <p style={{ margin: '6px 0 0', color: '#5d6d7e', fontSize: '13px' }}>
+                    Save a box setup to reuse it later in create order with a code.
+                  </p>
+                </div>
+                {latestSavedCode && (
+                  <div style={{
+                    alignSelf: 'center',
+                    padding: '8px 12px',
+                    backgroundColor: '#e8f5e9',
+                    border: '1px solid #b9e0c0',
+                    borderRadius: '999px',
+                    color: '#1e8449',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    Latest code: {latestSavedCode}
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {loadingSavedBoxDetails ? (
+                  <span style={{ color: '#6b7280', fontSize: '13px' }}>Loading saved box details...</span>
+                ) : savedBoxDetails.length > 0 ? (
+                  savedBoxDetails.map((savedDetail) => (
+                    <div
+                      key={savedDetail.code || savedDetail.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px',
+                        flexWrap: 'wrap',
+                        padding: '10px 12px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        backgroundColor: '#fff'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                          Code: {savedDetail.code || 'Unavailable'}
+                        </div>
+                        <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                          {savedDetail.boxes.length} saved box type{savedDetail.boxes.length !== 1 ? 's' : ''}
+                          {savedDetail.createdAt ? ` • ${new Date(savedDetail.createdAt).toLocaleString()}` : ''}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applySavedBoxDetail(savedDetail)}
+                        style={{
+                          padding: '8px 14px',
+                          backgroundColor: '#eef4ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <span style={{ color: '#6b7280', fontSize: '13px' }}>
+                    No saved box details yet.
+                  </span>
+                )}
+              </div>
             </div>
 
             {boxes.map((box, index) => (

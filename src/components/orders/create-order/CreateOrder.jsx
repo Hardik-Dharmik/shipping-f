@@ -5,6 +5,10 @@ import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-do
 import { formatCurrency } from '../../../utils/currency';
 import { toCreateOrderPrefill, extractAddressFormPayload } from '../../../utils/addressForms';
 import { calculateInvoiceTotal, syncInvoiceProduct } from '../../../utils/invoiceValues';
+import {
+  normalizeSavedBoxDetail,
+  toPackagesFromSavedBoxDetail,
+} from '../../../utils/boxDetails';
 import { toCreateOrderFormPrefill } from '../../../utils/orderActions';
 import './CreateOrder.css';
 import ImportantNotes from '../../shipping/ImportantNotes';
@@ -211,6 +215,8 @@ function CreateOrder() {
     code: '',
     url: '',
   });
+  const [savedPackageCode, setSavedPackageCode] = useState('');
+  const [loadingSavedPackage, setLoadingSavedPackage] = useState(false);
   const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
   const allOffers = rateResult?.offers || [];
   const satisfiedOffers = allOffers.filter(isOfferConditionSatisfied);
@@ -246,6 +252,7 @@ function CreateOrder() {
     setFormData(prefill.formData);
     setProducts(prefill.products);
     setPackages(prefill.packages);
+    setSavedPackageCode('');
     setCompliance(prefill.compliance);
     setInvoiceFiles([]);
     setPackingListFiles([]);
@@ -757,6 +764,7 @@ function CreateOrder() {
     setPackages([
       { id: 1, actualWeight: '', length: '', breadth: '', height: '' }
     ]);
+    setSavedPackageCode('');
     setInvoiceFiles([]);
     setPackingListFiles([]);
   
@@ -1086,6 +1094,43 @@ function CreateOrder() {
     }
   };
 
+  const handleLoadSavedPackage = async () => {
+    const trimmedCode = savedPackageCode.trim();
+
+    if (!trimmedCode) {
+      toast.error('Enter a saved package code first.');
+      return;
+    }
+
+    try {
+      setLoadingSavedPackage(true);
+      const response = await api.getBoxDetailByCode(trimmedCode);
+      const savedBoxDetail = normalizeSavedBoxDetail(response);
+      const mappedPackages = toPackagesFromSavedBoxDetail(savedBoxDetail);
+
+      setPackages(mappedPackages);
+      setSavedPackageCode(savedBoxDetail.code || trimmedCode);
+      setErrors((prev) => {
+        const nextErrors = { ...prev };
+        Object.keys(nextErrors)
+          .filter((key) => key.startsWith('package_'))
+          .forEach((key) => delete nextErrors[key]);
+        return nextErrors;
+      });
+
+      if (savedBoxDetail.weightUnit === 'pound' || savedBoxDetail.dimensionUnit === 'inches') {
+        toast.success(`Package details loaded from ${savedBoxDetail.code || trimmedCode} and converted to kg/cm.`);
+      } else {
+        toast.success(`Package details loaded from ${savedBoxDetail.code || trimmedCode}.`);
+      }
+    } catch (loadError) {
+      console.error('Load saved package error:', loadError);
+      toast.error(loadError.message || 'Failed to load saved package details.');
+    } finally {
+      setLoadingSavedPackage(false);
+    }
+  };
+
   const addPackage = () => {
     const newId = Math.max(...packages.map(p => p.id), 0) + 1;
     setPackages(prev => [
@@ -1269,6 +1314,29 @@ function CreateOrder() {
             </svg>
             Add Package
           </button>
+        </div>
+
+        <div className="saved-package-tools">
+          <div className="saved-package-tools-copy">
+            <h3>Load Saved Package Details</h3>
+            <p>Enter the saved code from Rate Calculator to fill package rows automatically.</p>
+          </div>
+          <div className="saved-package-tools-actions">
+            <input
+              type="text"
+              value={savedPackageCode}
+              onChange={(e) => setSavedPackageCode(e.target.value.toUpperCase())}
+              placeholder="Enter saved code"
+            />
+            <button
+              type="button"
+              onClick={handleLoadSavedPackage}
+              className="btn-load-package"
+              disabled={loadingSavedPackage}
+            >
+              {loadingSavedPackage ? 'Loading...' : 'Load Package'}
+            </button>
+          </div>
         </div>
 
         {packages.map((pkg, index) => (

@@ -164,6 +164,25 @@ export const api = {
     });
   },
 
+  saveBoxDetails: async (payload) => {
+    return apiRequest('/api/box-details', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getBoxDetails: async () => {
+    return apiRequest('/api/box-details', {
+      method: 'GET',
+    });
+  },
+
+  getBoxDetailByCode: async (code) => {
+    return apiRequest(`/api/box-details/${encodeURIComponent(code)}`, {
+      method: 'GET',
+    });
+  },
+
   updateAddressFormStatus: async (id, status) => {
     return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'PATCH',
