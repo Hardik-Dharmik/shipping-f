@@ -183,6 +183,28 @@ export const api = {
     });
   },
 
+  getContactDetailSuggestions: async (query, contactType) => {
+    return apiRequest(
+      `/api/contact-details/suggestions${buildQueryString({ query, contactType })}`,
+      {
+        method: 'GET',
+      }
+    );
+  },
+
+  getContactDetailById: async (id) => {
+    return apiRequest(`/api/contact-details/${encodeURIComponent(id)}`, {
+      method: 'GET',
+    });
+  },
+
+  saveContactDetail: async (payload) => {
+    return apiRequest('/api/contact-details', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
   updateAddressFormStatus: async (id, status) => {
     return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'PATCH',

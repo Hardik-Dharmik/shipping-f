@@ -9,6 +9,19 @@ import {
   normalizeSavedBoxDetail,
   toPackagesFromSavedBoxDetail,
 } from '../../../utils/boxDetails';
+import {
+  normalizeContactDetail,
+  normalizeContactSuggestions,
+  toContactDetailPayload,
+} from '../../../utils/contactDetails';
+import {
+  applyDeliveryContactToFormData,
+  applyPickupContactToFormData,
+  loadSavedDeliveryContacts,
+  loadSavedPickupContacts,
+  toDeliveryContactPayload,
+  toPickupContactPayload,
+} from '../../../utils/savedContacts';
 import { toCreateOrderFormPrefill } from '../../../utils/orderActions';
 import './CreateOrder.css';
 import ImportantNotes from '../../shipping/ImportantNotes';
@@ -217,6 +230,14 @@ function CreateOrder() {
   });
   const [savedPackageCode, setSavedPackageCode] = useState('');
   const [loadingSavedPackage, setLoadingSavedPackage] = useState(false);
+  const [savedPickupContacts, setSavedPickupContacts] = useState([]);
+  const [savedDeliveryContacts, setSavedDeliveryContacts] = useState([]);
+  const [pickupContactSuggestions, setPickupContactSuggestions] = useState([]);
+  const [deliveryContactSuggestions, setDeliveryContactSuggestions] = useState([]);
+  const [loadingPickupSuggestions, setLoadingPickupSuggestions] = useState(false);
+  const [loadingDeliverySuggestions, setLoadingDeliverySuggestions] = useState(false);
+  const [pickupSuggestionsOpen, setPickupSuggestionsOpen] = useState(false);
+  const [deliverySuggestionsOpen, setDeliverySuggestionsOpen] = useState(false);
   const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
   const allOffers = rateResult?.offers || [];
   const satisfiedOffers = allOffers.filter(isOfferConditionSatisfied);
@@ -224,6 +245,11 @@ function CreateOrder() {
   const hasFedExQuote = (rateResult?.quotes || []).some((quote) => isFedExCarrier(quote.carrier));
   const offersForCards = hasFedExQuote ? unsatisfiedOffers : allOffers;
   const fedExRowOffers = hasFedExQuote ? satisfiedOffers : [];
+
+  useEffect(() => {
+    setSavedPickupContacts(loadSavedPickupContacts());
+    setSavedDeliveryContacts(loadSavedDeliveryContacts());
+  }, []);
 
   useEffect(() => {
     if (
@@ -242,6 +268,62 @@ function CreateOrder() {
       }));
     }
   }, [formData.pickupCountry, formData.deliveryCountry]);
+
+  useEffect(() => {
+    if (!pickupSuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.pickupCompanyName.trim();
+    if (!query) {
+      setPickupContactSuggestions([]);
+      setLoadingPickupSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupSuggestions(true);
+        const response = await api.getContactDetailSuggestions(query, 'pickup');
+        setPickupContactSuggestions(normalizeContactSuggestions(response));
+      } catch (error) {
+        console.error('Pickup contact suggestions error:', error);
+        setPickupContactSuggestions([]);
+      } finally {
+        setLoadingPickupSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupCompanyName, pickupSuggestionsOpen]);
+
+  useEffect(() => {
+    if (!deliverySuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.deliveryCompanyName.trim();
+    if (!query) {
+      setDeliveryContactSuggestions([]);
+      setLoadingDeliverySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDeliverySuggestions(true);
+        const response = await api.getContactDetailSuggestions(query, 'delivery');
+        setDeliveryContactSuggestions(normalizeContactSuggestions(response));
+      } catch (error) {
+        console.error('Delivery contact suggestions error:', error);
+        setDeliveryContactSuggestions([]);
+      } finally {
+        setLoadingDeliverySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.deliveryCompanyName, deliverySuggestionsOpen]);
 
   useEffect(() => {
     const prefillOrder = location.state?.prefillOrder;
@@ -304,6 +386,12 @@ function CreateOrder() {
       ...prev,
       [name]: value
     }));
+    if (name === 'pickupCompanyName') {
+      setPickupSuggestionsOpen(true);
+    }
+    if (name === 'deliveryCompanyName') {
+      setDeliverySuggestionsOpen(true);
+    }
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -785,12 +873,46 @@ function CreateOrder() {
   const renderAddressSection = (prefix, title) => {
     const country = formData[`${prefix}Country`];
     const useCityName = CITY_NAME_COUNTRIES.includes(country);
+    const isPickupSection = prefix === 'pickup';
+    const isDeliverySection = prefix === 'delivery';
+    const pickupSuggestions = isPickupSection ? pickupContactSuggestions : [];
+    const deliverySuggestions = isDeliverySection ? deliveryContactSuggestions : [];
     
     return (
       <div className="address-section">
         <h2 className="section-title">{title}</h2>
+        {isPickupSection && (
+          <div className="saved-contact-tools">
+            <div className="saved-contact-tools-copy">
+              <h3>Saved Pickup Contacts</h3>
+              <p>Save the current pickup contact, then reuse it by typing the company name.</p>
+            </div>
+            <button
+              type="button"
+              className="btn-save-contact"
+              onClick={handleSavePickupContact}
+            >
+              Save Pickup Contact
+            </button>
+          </div>
+        )}
+        {isDeliverySection && (
+          <div className="saved-contact-tools">
+            <div className="saved-contact-tools-copy">
+              <h3>Saved Delivery Contacts</h3>
+              <p>Save the current delivery contact, then reuse it by typing the company name.</p>
+            </div>
+            <button
+              type="button"
+              className="btn-save-contact"
+              onClick={handleSaveDeliveryContact}
+            >
+              Save Delivery Contact
+            </button>
+          </div>
+        )}
         <div className="form-grid">
-          <div className="form-group">
+          <div className={`form-group ${isPickupSection || isDeliverySection ? 'company-suggestion-group' : ''}`}>
             <label htmlFor={`${prefix}CompanyName`}>
               Company Name <span className="required">*</span>
             </label>
@@ -800,9 +922,72 @@ function CreateOrder() {
               name={`${prefix}CompanyName`}
               value={formData[`${prefix}CompanyName`]}
               onChange={handleChange}
+              onFocus={() => {
+                if (isPickupSection) {
+                  setPickupSuggestionsOpen(true);
+                }
+                if (isDeliverySection) {
+                  setDeliverySuggestionsOpen(true);
+                }
+              }}
+              onBlur={() => {
+                if (isPickupSection) {
+                  setTimeout(() => setPickupSuggestionsOpen(false), 150);
+                }
+                if (isDeliverySection) {
+                  setTimeout(() => setDeliverySuggestionsOpen(false), 150);
+                }
+              }}
               placeholder="Enter company name"
               className={errors[`${prefix}CompanyName`] ? 'error' : ''}
+              autoComplete="off"
             />
+            {isPickupSection && pickupSuggestionsOpen && pickupSuggestions.length > 0 && (
+              <div className="company-suggestions">
+                {pickupSuggestions.map((contact) => (
+                  <button
+                    key={`${contact.companyName}-${contact.mobileNo}-${contact.savedAt || ''}`}
+                    type="button"
+                    className="company-suggestion-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleApplyPickupContact(contact)}
+                  >
+                    <span className="company-suggestion-title">{contact.companyName}</span>
+                    <span className="company-suggestion-meta">
+                      {[contact.fullName, contact.mobileNo, contact.city].filter(Boolean).join(' • ')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {isPickupSection && pickupSuggestionsOpen && loadingPickupSuggestions && (
+              <div className="company-suggestions company-suggestions-status">
+                <span className="company-suggestion-meta">Loading suggestions...</span>
+              </div>
+            )}
+            {isDeliverySection && deliverySuggestionsOpen && deliverySuggestions.length > 0 && (
+              <div className="company-suggestions">
+                {deliverySuggestions.map((contact) => (
+                  <button
+                    key={`${contact.companyName}-${contact.mobileNo}-${contact.savedAt || ''}`}
+                    type="button"
+                    className="company-suggestion-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleApplyDeliveryContact(contact)}
+                  >
+                    <span className="company-suggestion-title">{contact.companyName}</span>
+                    <span className="company-suggestion-meta">
+                      {[contact.fullName, contact.mobileNo, contact.city].filter(Boolean).join(' • ')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {isDeliverySection && deliverySuggestionsOpen && loadingDeliverySuggestions && (
+              <div className="company-suggestions company-suggestions-status">
+                <span className="company-suggestion-meta">Loading suggestions...</span>
+              </div>
+            )}
             {errors[`${prefix}CompanyName`] && (
               <span className="error-message">{errors[`${prefix}CompanyName`]}</span>
             )}
@@ -1092,6 +1277,150 @@ function CreateOrder() {
         [errorKey]: ''
       }));
     }
+  };
+
+  const handleSavePickupContact = () => {
+    const pickupContact = toPickupContactPayload(formData);
+
+    if (!pickupContact.companyName) {
+      toast.error('Enter pickup company name before saving contact details.');
+      return;
+    }
+
+    if (!pickupContact.mobileNo || !pickupContact.fullName || !pickupContact.completeAddress) {
+      toast.error('Enter the main pickup contact details before saving.');
+      return;
+    }
+
+    const savePickup = async () => {
+      try {
+        const response = await api.saveContactDetail(
+          toContactDetailPayload(pickupContact, 'pickup')
+        );
+        const savedContact = normalizeContactDetail(response);
+        setSavedPickupContacts((prev) => [
+          savedContact,
+          ...prev.filter((item) => item.id !== savedContact.id && item.companyName !== savedContact.companyName),
+        ]);
+        setPickupContactSuggestions((prev) => [
+          savedContact,
+          ...prev.filter((item) => item.id !== savedContact.id && item.companyName !== savedContact.companyName),
+        ]);
+        setPickupSuggestionsOpen(false);
+        toast.success(`Pickup contact saved for ${savedContact.companyName || pickupContact.companyName}.`);
+      } catch (error) {
+        console.error('Pickup contact save error:', error);
+        toast.error(error.message || 'Failed to save pickup contact details.');
+      }
+    };
+
+    savePickup();
+  };
+
+  const handleApplyPickupContact = (contact) => {
+    const applyPickup = async () => {
+      try {
+        const response = contact.id ? await api.getContactDetailById(contact.id) : contact;
+        const fullContact = normalizeContactDetail(response);
+        setFormData((prev) => applyPickupContactToFormData(fullContact, prev));
+        setPickupSuggestionsOpen(false);
+        setErrors((prev) => {
+          const nextErrors = { ...prev };
+          [
+            'pickupCompanyName',
+            'pickupCountry',
+            'pickupPincode',
+            'pickupMobileNo',
+            'pickupFullName',
+            'pickupCompleteAddress',
+            'pickupLandmark',
+            'pickupCity',
+            'pickupState',
+            'pickupAlternateNo',
+            'pickupEmail',
+          ].forEach((key) => delete nextErrors[key]);
+          return nextErrors;
+        });
+        toast.success(`Pickup details loaded for ${fullContact.companyName}.`);
+      } catch (error) {
+        console.error('Pickup contact fetch error:', error);
+        toast.error(error.message || 'Failed to load pickup contact details.');
+      }
+    };
+
+    applyPickup();
+  };
+
+  const handleSaveDeliveryContact = () => {
+    const deliveryContact = toDeliveryContactPayload(formData);
+
+    if (!deliveryContact.companyName) {
+      toast.error('Enter delivery company name before saving contact details.');
+      return;
+    }
+
+    if (!deliveryContact.mobileNo || !deliveryContact.fullName || !deliveryContact.completeAddress) {
+      toast.error('Enter the main delivery contact details before saving.');
+      return;
+    }
+
+    const saveDelivery = async () => {
+      try {
+        const response = await api.saveContactDetail(
+          toContactDetailPayload(deliveryContact, 'delivery')
+        );
+        const savedContact = normalizeContactDetail(response);
+        setSavedDeliveryContacts((prev) => [
+          savedContact,
+          ...prev.filter((item) => item.id !== savedContact.id && item.companyName !== savedContact.companyName),
+        ]);
+        setDeliveryContactSuggestions((prev) => [
+          savedContact,
+          ...prev.filter((item) => item.id !== savedContact.id && item.companyName !== savedContact.companyName),
+        ]);
+        setDeliverySuggestionsOpen(false);
+        toast.success(`Delivery contact saved for ${savedContact.companyName || deliveryContact.companyName}.`);
+      } catch (error) {
+        console.error('Delivery contact save error:', error);
+        toast.error(error.message || 'Failed to save delivery contact details.');
+      }
+    };
+
+    saveDelivery();
+  };
+
+  const handleApplyDeliveryContact = (contact) => {
+    const applyDelivery = async () => {
+      try {
+        const response = contact.id ? await api.getContactDetailById(contact.id) : contact;
+        const fullContact = normalizeContactDetail(response);
+        setFormData((prev) => applyDeliveryContactToFormData(fullContact, prev));
+        setDeliverySuggestionsOpen(false);
+        setErrors((prev) => {
+          const nextErrors = { ...prev };
+          [
+            'deliveryCompanyName',
+            'deliveryCountry',
+            'deliveryPincode',
+            'deliveryMobileNo',
+            'deliveryFullName',
+            'deliveryCompleteAddress',
+            'deliveryLandmark',
+            'deliveryCity',
+            'deliveryState',
+            'deliveryAlternateNo',
+            'deliveryEmail',
+          ].forEach((key) => delete nextErrors[key]);
+          return nextErrors;
+        });
+        toast.success(`Delivery details loaded for ${fullContact.companyName}.`);
+      } catch (error) {
+        console.error('Delivery contact fetch error:', error);
+        toast.error(error.message || 'Failed to load delivery contact details.');
+      }
+    };
+
+    applyDelivery();
   };
 
   const handleLoadSavedPackage = async () => {

@@ -314,6 +314,20 @@ function RateCalculator() {
     }
   };
 
+  const handleCopySavedCode = async () => {
+    if (!latestSavedCode) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(latestSavedCode);
+      toast.success('Package detail code copied to clipboard.');
+    } catch (copyError) {
+      console.error('Copy package detail code error:', copyError);
+      toast.error('Could not copy package detail code.');
+    }
+  };
+
   const getPickupFieldLabel = () => {
     return requiresCityName(formData.pickupCountry) ? 'Pickup City Name *' : 'Pickup Pin Code *';
   };
@@ -828,15 +842,38 @@ function RateCalculator() {
                 {latestSavedCode && (
                   <div style={{
                     alignSelf: 'center',
-                    padding: '8px 12px',
-                    backgroundColor: '#e8f5e9',
-                    border: '1px solid #b9e0c0',
-                    borderRadius: '999px',
-                    color: '#1e8449',
-                    fontSize: '13px',
-                    fontWeight: '600'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    flexWrap: 'wrap'
                   }}>
-                    Latest code: {latestSavedCode}
+                    <div style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#e8f5e9',
+                      border: '1px solid #b9e0c0',
+                      borderRadius: '999px',
+                      color: '#1e8449',
+                      fontSize: '13px',
+                      fontWeight: '600'
+                    }}>
+                      Latest code: {latestSavedCode}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopySavedCode}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#eef4ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Copy Code
+                    </button>
                   </div>
                 )}
               </div>
@@ -868,7 +905,9 @@ function RateCalculator() {
                           {savedDetail.createdAt ? ` • ${new Date(savedDetail.createdAt).toLocaleString()}` : ''}
                         </div>
                       </div>
-                      <button
+                     <div
+                     >
+                       <button
                         type="button"
                         onClick={() => applySavedBoxDetail(savedDetail)}
                         style={{
@@ -876,14 +915,33 @@ function RateCalculator() {
                           backgroundColor: '#eef4ff',
                           color: '#1d4ed8',
                           border: '1px solid #bfdbfe',
-                          borderRadius: '6px',
+                          borderRadius: '999px',
                           cursor: 'pointer',
                           fontSize: '13px',
-                          fontWeight: '600'
+                          fontWeight: '600',
+                          marginInline: '10px'
                         }}
                       >
                         Apply
                       </button>
+
+                      <button
+                      type="button"
+                      onClick={handleCopySavedCode}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#eef4ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Copy Code
+                    </button>
+                     </div>
                     </div>
                   ))
                 ) : (
