@@ -1,0 +1,15 @@
+Credit Application Form Sample
+
+Please complete the final company-approved credit application form and upload it on the KYC page.
+
+Suggested fields:
+- Company name
+- Registered address
+- Contact person
+- Email address
+- Phone number
+- Trade licence number
+- Tax registration number
+- Requested credit limit
+- Authorized signatory name
+- Signature and company stamp

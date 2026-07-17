@@ -1,0 +1,167 @@
+.kyc-approval-page {
+  padding: 30px;
+}
+
+.kyc-approval-container {
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.kyc-approval-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kyc-back-link {
+  color: #175cd3;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.kyc-back-link:hover {
+  text-decoration: underline;
+}
+
+.kyc-approval-topbar h1 {
+  margin: 8px 0 4px;
+  color: #101828;
+  font-size: 28px;
+}
+
+.kyc-approval-topbar p {
+  margin: 0;
+  color: #667085;
+}
+
+.kyc-approval-status {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.kyc-approval-status.pending {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.kyc-approval-status.completed {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.kyc-approval-card {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.kyc-approval-card h2 {
+  margin: 0 0 16px;
+  color: #101828;
+  font-size: 18px;
+}
+
+.kyc-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kyc-meta-grid strong {
+  color: #101828;
+}
+
+.kyc-meta-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.kyc-document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kyc-document-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.kyc-document-row:last-child {
+  border-bottom: none;
+}
+
+.kyc-document-row a {
+  color: #175cd3;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kyc-document-row a:hover {
+  text-decoration: underline;
+}
+
+.kyc-doc-empty {
+  color: #98a2b3;
+}
+
+.kyc-status-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.kyc-status-btn {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.kyc-status-btn.primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.kyc-status-btn.secondary {
+  background: #ffffff;
+  color: #344054;
+  border-color: #d0d5dd;
+}
+
+.kyc-status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .kyc-approval-page {
+    padding: 20px;
+  }
+
+  .kyc-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kyc-document-row,
+  .kyc-status-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

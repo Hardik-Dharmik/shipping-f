@@ -9,10 +9,13 @@ import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import RateCalculator from './components/shipping/RateCalculator';
 import Billing from './components/billing/Billing';
+import Kyc from './components/kyc/Kyc';
 import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import UsersWithOrders from './components/admin/UsersWithOrders';
 import UserOrders from './components/admin/UserOrders';
+import KycRequests from './components/admin/KycRequests';
+import KycApproval from './components/admin/KycApproval';
 import './App.css';
 import TicketDashboard from './components/tickets/TicketDashboard';
 import Home from './components/home/Home';
@@ -205,6 +208,14 @@ function AppRoutes() {
                         path="/billing"
                         element={<Billing />}
                       />
+                      <Route
+                        path="/kyc"
+                        element={
+                          <UserRoute>
+                            <Kyc />
+                          </UserRoute>
+                        }
+                      />
                       <Route 
                         path="/tickets" 
                         element={
@@ -237,6 +248,22 @@ function AppRoutes() {
                             <UsersWithOrders />
                           </AdminRoute>
                         } 
+                      />
+                      <Route
+                        path="/admin/kyc/requests"
+                        element={
+                          <AdminRoute>
+                            <KycRequests />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/kyc/requests/:id"
+                        element={
+                          <AdminRoute>
+                            <KycApproval />
+                          </AdminRoute>
+                        }
                       />
                       <Route 
                         path="/admin/users/:userId/orders" 

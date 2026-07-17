@@ -1,0 +1,160 @@
+.kyc-requests-page {
+  padding: 30px;
+}
+
+.kyc-requests-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kyc-requests-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kyc-requests-header h1 {
+  margin: 0 0 6px;
+  color: #1f2937;
+  font-size: 28px;
+}
+
+.kyc-requests-header p {
+  margin: 0;
+  color: #667085;
+}
+
+.kyc-refresh-btn {
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  color: #344054;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kyc-requests-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kyc-summary-box {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kyc-summary-box span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.kyc-summary-box strong {
+  color: #101828;
+  font-size: 24px;
+}
+
+.kyc-state-card {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 24px;
+  color: #475467;
+}
+
+.kyc-state-card.error {
+  color: #b42318;
+}
+
+.kyc-requests-table-wrap {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.kyc-requests-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kyc-requests-table th,
+.kyc-requests-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.kyc-requests-table th {
+  color: #475467;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kyc-user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kyc-user-cell strong {
+  color: #101828;
+}
+
+.kyc-user-cell span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.kyc-table-status {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.kyc-table-status.pending {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.kyc-table-status.completed {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.kyc-review-link {
+  color: #175cd3;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kyc-review-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .kyc-requests-page {
+    padding: 20px;
+  }
+
+  .kyc-requests-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .kyc-requests-table {
+    min-width: 760px;
+  }
+}

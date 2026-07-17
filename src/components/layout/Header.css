@@ -21,6 +21,19 @@
   justify-content: space-between;
   padding: 0 30px;
   height: 100%;
+  gap: 20px;
+}
+
+.header-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.header-page-copy {
+  display: flex;
+  align-items: center;
 }
 
 .header-title {
@@ -28,6 +41,73 @@
   font-size: 24px;
   font-weight: 600;
   color: #2c3e50;
+  white-space: nowrap;
+}
+
+.header-kyc-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.header-kyc-banner.pending {
+  background: #fffaeb;
+  border-color: #fedf89;
+}
+
+.header-kyc-banner.completed {
+  background: #ecfdf3;
+  border-color: #abefc6;
+}
+
+.header-kyc-text {
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.header-kyc-banner.pending .header-kyc-text {
+  color: #b54708;
+}
+
+.header-kyc-banner.completed .header-kyc-text {
+  color: #027a48;
+}
+
+.header-kyc-button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-kyc-button:hover {
+  background: #1d4ed8;
+}
+
+.header-kyc-banner.pending .header-kyc-button {
+  background: #f79009;
+}
+
+.header-kyc-banner.pending .header-kyc-button:hover {
+  background: #dc6803;
+}
+
+.header-kyc-banner.completed .header-kyc-button {
+  background: #039855;
+}
+
+.header-kyc-banner.completed .header-kyc-button:hover {
+  background: #027a48;
 }
 
 .header-user {
@@ -215,8 +295,16 @@
     padding: 0 20px;
   }
 
+  .header-left {
+    gap: 12px;
+  }
+
   .header-title {
     font-size: 20px;
+  }
+
+  .header-kyc-banner {
+    display: none;
   }
 
   .header-user-info {

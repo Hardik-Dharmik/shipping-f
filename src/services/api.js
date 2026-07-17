@@ -296,6 +296,32 @@ export const api = {
     });
   },
 
+  submitKycRequest: async (formData) => {
+    return apiRequest('/api/kyc/request', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  getMyKyc: async () => {
+    return apiRequest('/api/kyc/me', {
+      method: 'GET',
+    });
+  },
+
+  getKycRequests: async () => {
+    return apiRequest('/api/kyc/requests', {
+      method: 'GET',
+    });
+  },
+
+  updateKycStatus: async (userId, status) => {
+    return apiRequest(`/api/kyc/users/${encodeURIComponent(userId)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   getBillingUploads: async () => {
     return apiRequest('/api/billing/uploads', {
       method: 'GET',

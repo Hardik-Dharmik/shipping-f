@@ -3,7 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { api } from '../../services/api';
 import './Header.css';
+
+function getKycRecord(response) {
+  if (!response) return null;
+  return response.data || response.kyc || response.request || response;
+}
 
 function Header() {
   const location = useLocation();
@@ -11,17 +17,29 @@ function Header() {
   const { user, isAdmin, logout } = useAuth();
   const { isCollapsed } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [kycStatus, setKycStatus] = useState('');
   const dropdownRef = useRef(null);
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path === '/home') return 'Home';
     if (path === '/calculate-rate') return 'Rate Calculator';
     if (path === '/orders') return 'Orders';
+    if (path === '/orders/list') return 'Orders';
     if (path === '/orders/confirmed') return 'Shipment Confirmed';
+    if (path === '/orders/create') return 'Create Order';
+    if (path === '/orders/address-forms') return 'Address Forms';
+    if (path === '/billing') return 'Billing';
+    if (path === '/tickets') return 'Tickets';
+    if (path === '/kyc') return 'KYC Documents';
     if (path === '/admin/signups/pending') return 'Pending Approvals';
     if (path === '/admin/users') return 'Users';
     if (path === '/admin/users/orders') return 'User Orders';
+    if (path === '/admin/kyc/requests') return 'KYC Requests';
+    if (path.startsWith('/admin/kyc/requests/')) return 'KYC Approval';
     if (path.startsWith('/admin/users/') && path.endsWith('/orders')) return 'User Orders';
+    if (path.startsWith('/orders/')) return 'Order Details';
+    if (path.startsWith('/admin/orders/')) return 'Order Details';
     return 'Dashboard';
   };
 
@@ -49,6 +67,64 @@ function Header() {
     };
   }, [dropdownOpen]);
 
+  useEffect(() => {
+    if (isAdmin || !user) {
+      setKycStatus('');
+      return;
+    }
+
+    const fetchKycStatus = async () => {
+      try {
+        const response = await api.getMyKyc();
+        const record = getKycRecord(response);
+        setKycStatus(record?.status || record?.kyc_status || '');
+      } catch (error) {
+        if (!String(error?.message || '').includes('404')) {
+          console.error('Failed to load KYC status:', error);
+        }
+        setKycStatus('');
+      }
+    };
+
+    fetchKycStatus();
+
+    const handleKycUpdated = () => {
+      fetchKycStatus();
+    };
+
+    window.addEventListener('kyc-updated', handleKycUpdated);
+
+    return () => {
+      window.removeEventListener('kyc-updated', handleKycUpdated);
+    };
+  }, [isAdmin, user]);
+
+  const getKycBanner = () => {
+    if (kycStatus === 'pending') {
+      return {
+        text: 'Your KYC request is pending approval',
+        buttonLabel: 'View KYC',
+        variant: 'pending',
+      };
+    }
+
+    if (kycStatus === 'completed') {
+      return {
+        text: 'Your KYC is completed',
+        buttonLabel: 'View KYC',
+        variant: 'completed',
+      };
+    }
+
+    return {
+      text: 'To avail credit facility, please complete KYC',
+      buttonLabel: 'Complete KYC',
+      variant: 'default',
+    };
+  };
+
+  const kycBanner = getKycBanner();
+
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.trim().split(' ');
@@ -61,7 +137,22 @@ function Header() {
   return (
     <header className={`header ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="header-content">
-        <h1 className="header-title"></h1>
+        <div className="header-left">
+          {!isAdmin && (
+            <div className={`header-kyc-banner ${kycBanner.variant}`}>
+              <span className="header-kyc-text">
+                {kycBanner.text}
+              </span>
+              <button
+                type="button"
+                className="header-kyc-button"
+                onClick={() => navigate('/kyc')}
+              >
+                {kycBanner.buttonLabel}
+              </button>
+            </div>
+          )}
+        </div>
         {user && (
           <div className="header-user" ref={dropdownRef}>
             <button 

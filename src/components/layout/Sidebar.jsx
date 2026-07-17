@@ -193,6 +193,17 @@ function Sidebar() {
               {!isCollapsed && <span>User Orders</span>}
             </Link>
             <Link 
+              to="/admin/kyc/requests" 
+              className={`sidebar-link ${location.pathname.startsWith('/admin/kyc/requests') ? 'active' : ''}`}
+              title={isCollapsed ? 'KYC Requests' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4" />
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+              </svg>
+              {!isCollapsed && <span>KYC Requests</span>}
+            </Link>
+            <Link 
               to="/billing" 
               className={`sidebar-link ${location.pathname === '/billing' ? 'active' : ''}`}
               title={isCollapsed ? 'Billing' : ''}
