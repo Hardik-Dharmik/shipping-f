@@ -99,7 +99,7 @@ function Signup() {
             response?.org_id ||
             response?.data?.organization_id ||
             response?.data?.org_id;
-          const successMessage = response.message || 'Registration successful! Your account is pending admin approval.';
+          const successMessage = response.message || 'Registration successful! You can now sign in.';
           toast.success(
             organizationId
               ? `${successMessage} Organization ID: ${organizationId}`

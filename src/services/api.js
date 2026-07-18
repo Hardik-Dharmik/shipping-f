@@ -228,27 +228,6 @@ export const api = {
     });
   },
 
-  // Get pending signups
-  getPendingSignups: async () => {
-    return apiRequest('/api/admin/pending', {
-      method: 'GET',
-    });
-  },
-
-  // Approve user
-  approveUser: async (userId) => {
-    return apiRequest(`/api/admin/approve/${userId}`, {
-      method: 'PATCH',
-    });
-  },
-
-  // Reject user
-  rejectUser: async (userId) => {
-    return apiRequest(`/api/admin/reject/${userId}`, {
-      method: 'PATCH',
-    });
-  },
-
   // Get all users
   getUsers: async (params = {}) => {
     return apiRequest(`/api/admin/users${buildQueryString(params)}`, {

@@ -11,7 +11,7 @@ const KYC_DOCUMENTS = [
     fieldName: 'credit_application_form',
     title: 'Credit Application Form',
     description: 'Download the sample, complete the form, and upload the signed document.',
-    sampleHref: '/kyc-credit-application-sample.txt',
+    sampleHref: '/FreightMerge_Credit_Application_Form.docx',
     sampleLabel: 'Download sample',
     required: true,
   },

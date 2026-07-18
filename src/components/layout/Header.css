@@ -24,6 +24,12 @@
   gap: 20px;
 }
 
+.header-info {
+  display:flex;
+  flex:1;
+  justify-content: space-between;
+}
+
 .header-left {
   min-width: 0;
   display: flex;
@@ -87,6 +93,16 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+}
+.header-org-button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #b1b7c5;
+  color: #060303;
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
 }
 

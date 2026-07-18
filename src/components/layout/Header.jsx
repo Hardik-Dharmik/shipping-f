@@ -33,7 +33,6 @@ function Header() {
     if (path === '/billing') return 'Billing';
     if (path === '/tickets') return 'Tickets';
     if (path === '/kyc') return 'KYC Documents';
-    if (path === '/admin/signups/pending') return 'Pending Approvals';
     if (path === '/admin/users') return 'Users';
     if (path === '/admin/users/orders') return 'User Orders';
     if (path === '/admin/kyc/requests') return 'KYC Requests';
@@ -138,7 +137,8 @@ function Header() {
   return (
     <header className={`header ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="header-content">
-        <div className="header-left">
+        <div className="header-info">
+          <div className="header-left">
           {!isAdmin && requiresKyc && (
             <div className={`header-kyc-banner ${kycBanner.variant}`}>
               <span className="header-kyc-text">
@@ -153,6 +153,17 @@ function Header() {
               </button>
             </div>
           )}
+        </div>
+        <div className="header-left">
+          {!isAdmin && (
+              <span
+                type="button"
+                className="header-org-button"
+              >
+                {user.organization_code}
+              </span>
+          )}
+        </div>
         </div>
         {user && (
           <div className="header-user" ref={dropdownRef}>

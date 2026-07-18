@@ -10,7 +10,6 @@ import Signup from './components/auth/Signup';
 import RateCalculator from './components/shipping/RateCalculator';
 import Billing from './components/billing/Billing';
 import Kyc from './components/kyc/Kyc';
-import PendingApprovals from './components/admin/PendingApprovals';
 import Users from './components/admin/Users';
 import UsersWithOrders from './components/admin/UsersWithOrders';
 import UserOrders from './components/admin/UserOrders';
@@ -51,7 +50,7 @@ function PublicRoute({ children }) {
 
   if (isAuthenticated) {
     if (isAdmin) {
-      return <Navigate to="/admin/signups/pending" replace />;
+      return <Navigate to="/home" replace />;
     }
     return <Navigate to="/calculate-rate" replace />;
   }
@@ -91,7 +90,7 @@ function UserRoute({ children }) {
   }
 
   if (isAdmin) {
-    return <Navigate to="/admin/signups/pending" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return children;
@@ -99,13 +98,13 @@ function UserRoute({ children }) {
 
 // Default Route Component (redirects based on user role)
 function DefaultRoute() {
-  const { isAdmin, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  return <Navigate to={isAdmin ? "/admin/signups/pending" : "/home"} replace />;
+  return <Navigate to="/home" replace />;
 }
 
 function AppRoutes() {
@@ -225,14 +224,6 @@ function AppRoutes() {
                         } 
                       />
 
-                      <Route 
-                        path="/admin/signups/pending" 
-                        element={
-                          <AdminRoute>
-                            <PendingApprovals />
-                          </AdminRoute>
-                        } 
-                      />
                       <Route 
                         path="/admin/users" 
                         element={

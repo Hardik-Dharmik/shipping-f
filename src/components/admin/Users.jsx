@@ -5,7 +5,6 @@ import './Users.css';
 const DEFAULT_QUERY = {
   search: '',
   role: '',
-  status: '',
   sortBy: 'created_at',
   sortOrder: 'desc',
   page: 1,
@@ -18,19 +17,11 @@ const ROLE_OPTIONS = [
   { value: 'user', label: 'User' }
 ];
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'rejected', label: 'Rejected' }
-];
-
 const USER_COLUMNS = [
   { key: 'name', label: 'Name', sortKey: 'name' },
   { key: 'email', label: 'Email', sortKey: 'email' },
   { key: 'company', label: 'Company', sortKey: 'company_name' },
   { key: 'role', label: 'Role', sortKey: 'role' },
-  { key: 'status', label: 'Status', sortKey: 'approval_status' },
   { key: 'registered', label: 'Registered', sortKey: 'created_at' },
   { key: 'document', label: 'Document' }
 ];
@@ -46,19 +37,6 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit',
   });
-};
-
-const getStatusBadgeClass = (status) => {
-  switch (status?.toLowerCase()) {
-    case 'approved':
-      return 'status-approved';
-    case 'pending':
-      return 'status-pending';
-    case 'rejected':
-      return 'status-rejected';
-    default:
-      return 'status-pending';
-  }
 };
 
 const getRoleBadgeClass = (role) => {
@@ -96,7 +74,7 @@ const normalizeUsersResponse = (response, query) => {
   if (query.search) {
     const normalizedSearch = query.search.toLowerCase();
     rows = rows.filter((user) =>
-      [user.name, user.email, user.company_name, user.role, user.approval_status]
+      [user.name, user.email, user.company_name, user.role]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalizedSearch))
     );
@@ -104,12 +82,6 @@ const normalizeUsersResponse = (response, query) => {
 
   if (query.role) {
     rows = rows.filter((user) => String(user.role || '').toLowerCase() === String(query.role).toLowerCase());
-  }
-
-  if (query.status) {
-    rows = rows.filter(
-      (user) => String(user.approval_status || '').toLowerCase() === String(query.status).toLowerCase()
-    );
   }
 
   if (query.sortBy) {
@@ -157,11 +129,6 @@ function Users() {
               key: 'role',
               label: 'Role',
               options: ROLE_OPTIONS
-            },
-            {
-              key: 'status',
-              label: 'Status',
-              options: STATUS_OPTIONS
             }
           ]}
           singularLabel="User"
@@ -180,11 +147,6 @@ function Users() {
               <td>
                 <span className={`role-badge ${getRoleBadgeClass(user.role)}`}>
                   {user.role || 'user'}
-                </span>
-              </td>
-              <td>
-                <span className={`status-badge ${getStatusBadgeClass(user.approval_status)}`}>
-                  {user.approval_status || 'pending'}
                 </span>
               </td>
               <td>{formatDate(user.created_at)}</td>
