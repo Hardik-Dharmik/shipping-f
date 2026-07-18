@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { api } from '../../services/api';
+import { isKycRequiredForUser } from '../../utils/userAccess.js';
 import './Header.css';
 
 function getKycRecord(response) {
@@ -14,7 +15,7 @@ function getKycRecord(response) {
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, requiresKyc } = useAuth();
   const { isCollapsed } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [kycStatus, setKycStatus] = useState('');
@@ -68,7 +69,7 @@ function Header() {
   }, [dropdownOpen]);
 
   useEffect(() => {
-    if (isAdmin || !user) {
+    if (isAdmin || !user || !isKycRequiredForUser(user)) {
       setKycStatus('');
       return;
     }
@@ -138,7 +139,7 @@ function Header() {
     <header className={`header ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="header-content">
         <div className="header-left">
-          {!isAdmin && (
+          {!isAdmin && requiresKyc && (
             <div className={`header-kyc-banner ${kycBanner.variant}`}>
               <span className="header-kyc-text">
                 {kycBanner.text}

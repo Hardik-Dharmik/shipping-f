@@ -68,6 +68,11 @@
   padding: 16px;
 }
 
+.kyc-exempt-card {
+  background: #f8fffb;
+  border-color: #abefc6;
+}
+
 .kyc-readonly-card h2 {
   margin: 0 0 8px;
   color: #101828;

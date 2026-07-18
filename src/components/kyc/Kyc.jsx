@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { getOrganizationId } from '../../utils/userAccess.js';
 import './Kyc.css';
 
 const KYC_DOCUMENTS = [
@@ -49,6 +51,8 @@ function getDocumentUrl(record, document) {
 }
 
 function Kyc() {
+  const { user, requiresKyc } = useAuth();
+  const organizationId = getOrganizationId(user);
   const [documents, setDocuments] = useState({
     creditApplicationForm: null,
     tradeLicence: null,
@@ -73,8 +77,13 @@ function Kyc() {
   const isReadOnly = isPending || isCompleted;
 
   useEffect(() => {
+    if (!requiresKyc) {
+      setLoading(false);
+      return;
+    }
+
     fetchKyc();
-  }, []);
+  }, [requiresKyc]);
 
   const fetchKyc = async () => {
     try {
@@ -149,10 +158,23 @@ function Kyc() {
         <header className="kyc-header">
           <div className="kyc-header-copy">
             <h1>KYC Documents</h1>
-            <p>Upload the required PDF documents for your credit facility request.</p>
+            <p>
+              {requiresKyc
+                ? 'Upload the required PDF documents for your credit facility request.'
+                : 'Your account is linked as an employee under an existing organization.'}
+            </p>
           </div>
         </header>
 
+        {!requiresKyc ? (
+          <section className="kyc-readonly-card kyc-exempt-card">
+            <h2>KYC not required</h2>
+            <p>
+              Employee accounts do not need to submit KYC documents. Your access is handled
+              through the organization{organizationId ? ` (${organizationId})` : ''}.
+            </p>
+          </section>
+        ) : (
         <form className="kyc-form" onSubmit={handleSubmit}>
           <section className="kyc-status-card">
             <div>
@@ -274,6 +296,7 @@ function Kyc() {
             </>
           )}
         </form>
+        )}
       </div>
     </section>
   );

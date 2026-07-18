@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { isEmployeeUser, isKycRequiredForUser } from '../utils/userAccess.js';
 
 const AuthContext = createContext();
 
@@ -46,6 +47,8 @@ export function AuthProvider({ children }) {
     logout,
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin',
+    isEmployee: isEmployeeUser(user),
+    requiresKyc: isKycRequiredForUser(user),
     loading
   };
 

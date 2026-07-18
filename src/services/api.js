@@ -104,9 +104,19 @@ export const api = {
     data.append('name', formData.name);
     data.append('email', formData.email);
     data.append('password', formData.password);
-    data.append('company_name', formData.companyName);
-    if (formData.file) {
-      data.append('file', formData.file);
+    data.append('organization_type', formData.organizationMode);
+
+    if (formData.organizationMode === 'new') {
+      data.append('organization_action', 'create');
+      data.append('organization_name', formData.organizationName);
+      data.append('company_name', formData.organizationName);
+    } else {
+      data.append('organization_action', 'join');
+      data.append('organization_id', formData.organizationId);
+      data.append('org_id', formData.organizationId);
+      data.append('is_employee', 'true');
+      data.append('employee_of_org', 'true');
+      data.append('kyc_required', 'false');
     }
 
     return apiRequest('/api/register', {
