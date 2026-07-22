@@ -327,6 +327,19 @@
   margin-top: 20px;
 }
 
+.btn-save-calculator { background: #0f766e; color: #fff; }
+.btn-view-saved-details { background: #475467; color: #fff; }
+.saved-calculator-code { margin-top: 14px; padding: 10px 12px; border: 1px solid #a7dfd5; border-radius: 8px; background: #effcf9; color: #115e59; font-size: 14px; text-align: right; }
+.saved-calculator-code button { margin-left: 10px; border: 0; border-radius: 6px; padding: 6px 9px; background: #0f766e; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.saved-rate-details-state { margin: 0; padding: 20px; text-align: center; color: #475467; }
+.saved-rate-details-list { display: grid; gap: 12px; }
+.saved-rate-detail-card { padding: 14px; border: 1px solid #dbe3f3; border-radius: 10px; background: #fbfdff; }
+.saved-rate-detail-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #1f335d; }
+.saved-rate-detail-card-header button { border: 1px solid #bfdbfe; border-radius: 6px; padding: 6px 9px; background: #eff6ff; color: #1d4ed8; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.saved-rate-detail-card-header button:disabled { cursor: not-allowed; opacity: .6; }
+.saved-rate-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-top: 12px; color: #475467; font-size: 14px; }
+.saved-rate-detail-grid span { display: flex; flex-direction: column; gap: 3px; }.saved-rate-detail-grid b { color: #667085; font-size: 12px; }
+
 .offers-section h3 {
   margin: 0 0 20px 0;
   color: #34495e;
@@ -648,6 +661,28 @@
   gap: 12px;
 }
 
+.compliance-section {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #d7e0f2;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfcff 0%, #f5f8ff 100%);
+}
+
+.radio-group-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: #4a5f88;
+}
+
+.radio-options { display: flex; gap: 10px; }
+.compliance-radio-option { align-items: center; min-width: 110px; }
+.charge-note { margin: 8px 0 0 26px; padding: 8px 10px; border-left: 3px solid #f59e0b; border-radius: 6px; background: #fff7e6; color: #9a6700; font-size: 12px; }
+
 .compliance-option {
   display: flex;
   align-items: flex-start;
@@ -664,13 +699,16 @@
   box-shadow: 0 3px 10px rgba(69, 106, 190, 0.1);
 }
 
-.compliance-option input[type="checkbox"] {
+.compliance-option input[type="checkbox"],
+.compliance-option input[type="radio"] {
   margin-top: 2px;
   width: 16px;
   height: 16px;
   accent-color: #3355d4;
   cursor: pointer;
 }
+
+.compliance-option input:disabled + label { color: #7f8ca5; cursor: not-allowed; }
 
 .compliance-option label {
   font-size: 14px;
@@ -724,6 +762,8 @@
   .results-container {
     gap: 20px;
   }
+
+  .saved-rate-detail-grid { grid-template-columns: 1fr; }
 
   .invoice-value-row {
     grid-template-columns: 1fr;

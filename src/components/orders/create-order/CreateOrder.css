@@ -99,6 +99,25 @@
   margin: 0 0 8px;
 }
 
+.rate-calculator-code-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid #dbe3f3;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.rate-calculator-code-tools h3 { margin: 0; color: #1f335d; }
+.rate-calculator-code-tools p { margin: 8px 0 0; color: #445273; font-size: 14px; }
+.rate-calculator-code-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.rate-calculator-code-actions input { width: 135px; padding: 11px 12px; border: 1px solid #bccbe8; border-radius: 8px; font: inherit; text-transform: uppercase; }
+.btn-load-rate-calculator { border: 0; border-radius: 8px; padding: 11px 14px; background: #1d4ed8; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.btn-load-rate-calculator:disabled { cursor: not-allowed; opacity: .65; }
+
 .address-form-link {
   word-break: break-all;
   color: #34495e;
@@ -930,6 +949,12 @@
   .address-form-tools-actions {
     flex-direction: column;
   }
+
+  .rate-calculator-code-tools,
+  .rate-calculator-code-actions { flex-direction: column; align-items: stretch; }
+
+  .rate-calculator-code-actions input,
+  .btn-load-rate-calculator { width: 100%; box-sizing: border-box; }
 
   .address-form-tools .btn-submit,
   .address-form-list-link {

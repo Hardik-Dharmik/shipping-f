@@ -190,6 +190,7 @@ export const toCreateOrderFormPrefill = (order = {}) => {
         orderData.temporaryExportForRepairAndReturn,
         order.temporary_export_for_repair_and_return
       ),
+      insurance: toBooleanValue(compliance.insurance, orderData.insurance, order.insurance),
     },
   };
 };
@@ -235,6 +236,7 @@ export const toRebookOrderPayload = (order = {}) => {
       orderData.temporaryExportForRepairAndReturn,
       order.temporary_export_for_repair_and_return
     ),
+    insurance: toBooleanValue(compliance.insurance, submittedDetails.insurance, orderData.insurance, order.insurance),
     carrier: {
       name: toStringValue(order.carrier?.name, orderData.carrier?.name),
       cost: toNumberValue(order.carrier?.cost, orderData.carrier?.cost),
@@ -256,6 +258,7 @@ export const toRebookOrderPayload = (order = {}) => {
         orderData.temporaryExportForRepairAndReturn,
         order.temporary_export_for_repair_and_return
       ),
+      insurance: toBooleanValue(compliance.insurance, orderData.insurance, order.insurance),
     },
     addressFormId: orderData.addressFormId || null,
   };

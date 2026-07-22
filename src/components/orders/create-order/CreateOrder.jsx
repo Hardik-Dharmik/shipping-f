@@ -207,7 +207,8 @@ function CreateOrder() {
     requireDO: false,
     exportDeclaration: false,
     dutyExemption: false,
-    temporaryExportForRepairAndReturn: false
+    temporaryExportForRepairAndReturn: false,
+    insurance: false,
   });
   const [invoiceFiles, setInvoiceFiles] = useState([]);
   const [packingListFiles, setPackingListFiles] = useState([]);
@@ -230,6 +231,8 @@ function CreateOrder() {
   });
   const [savedPackageCode, setSavedPackageCode] = useState('');
   const [loadingSavedPackage, setLoadingSavedPackage] = useState(false);
+  const [rateCalculatorCode, setRateCalculatorCode] = useState('');
+  const [loadingRateCalculatorCode, setLoadingRateCalculatorCode] = useState(false);
   const [savedPickupContacts, setSavedPickupContacts] = useState([]);
   const [savedDeliveryContacts, setSavedDeliveryContacts] = useState([]);
   const [pickupContactSuggestions, setPickupContactSuggestions] = useState([]);
@@ -615,6 +618,7 @@ function CreateOrder() {
 
     const exportDeclarationCharge = compliance.exportDeclaration ? 120 : 0;
     const shipmentValue = calculateShipmentValue();
+    const insuranceCharge = compliance.insurance ? Math.max(45, shipmentValue * 0.02) : 0;
     const selectedCurrency = getSelectedCurrency() || products[0]?.currency || selectedQuote.currency || 'AED';
     const detailedProducts = products.map((product) =>
       syncInvoiceProduct({
@@ -643,6 +647,8 @@ function CreateOrder() {
       exportDeclaration: compliance.exportDeclaration,
       dutyExemption: compliance.dutyExemption,
       temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
+      insurance: compliance.insurance,
+      insuranceCharge,
       pickupCompanyName: formData.pickupCompanyName,
       pickupMobileNo: formData.pickupMobileNo,
       pickupFullName: formData.pickupFullName,
@@ -702,7 +708,9 @@ function CreateOrder() {
         exportDeclaration: compliance.exportDeclaration,
         exportDeclarationCharge,
         dutyExemption: compliance.dutyExemption,
-        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn
+        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
+        insurance: compliance.insurance,
+        insuranceCharge,
       },
       orderMeta: {
         shipmentValueCurrency: selectedCurrency,
@@ -819,7 +827,9 @@ function CreateOrder() {
         requireDO: compliance.requireDO,
         exportDeclaration: compliance.exportDeclaration,
         dutyExemption: compliance.dutyExemption,
-        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn
+        temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
+        insurance: compliance.insurance,
+        insuranceCharge: compliance.insurance ? Math.max(45, shipmentValue * 0.02) : 0,
       };
 
       // Call rate calculation API
@@ -852,6 +862,14 @@ function CreateOrder() {
     setPackages([
       { id: 1, actualWeight: '', length: '', breadth: '', height: '' }
     ]);
+    setCompliance({
+      requireBOE: false,
+      requireDO: false,
+      exportDeclaration: false,
+      dutyExemption: false,
+      temporaryExportForRepairAndReturn: false,
+      insurance: false,
+    });
     setSavedPackageCode('');
     setInvoiceFiles([]);
     setPackingListFiles([]);
@@ -1460,6 +1478,69 @@ function CreateOrder() {
     }
   };
 
+  const handleLoadRateCalculatorDetails = async () => {
+    const code = rateCalculatorCode.trim();
+    if (!code) {
+      toast.error('Enter a saved rate calculator code first.');
+      return;
+    }
+
+    try {
+      setLoadingRateCalculatorCode(true);
+      const response = await api.getRateCalculatorDetails(code);
+      const responseData = response?.data || response || {};
+      const savedData = responseData.rateData || responseData.calculatorData || responseData.formData || responseData;
+      const savedBoxes = Array.isArray(savedData.boxes) ? savedData.boxes : [];
+      const packagesFromCalculator = savedBoxes.flatMap((box, boxIndex) => {
+        const quantity = Math.max(1, Number.parseInt(box.quantity, 10) || 1);
+        const totalWeight = Number(box.actualWeight ?? box.weight) || 0;
+        const weightPerPackage = totalWeight / quantity;
+        return Array.from({ length: quantity }, (_, quantityIndex) => ({
+          id: boxIndex * 1000 + quantityIndex + 1,
+          actualWeight: String(weightPerPackage || ''),
+          length: String(box.length ?? ''),
+          breadth: String(box.breadth ?? ''),
+          height: String(box.height ?? ''),
+        }));
+      });
+      const savedInvoiceValues = Array.isArray(savedData.invoiceValues)
+        ? savedData.invoiceValues
+        : [String(savedData.shipmentValue ?? '')];
+
+      setFormData({
+        ...INITIAL_ORDER_FORM_DATA,
+        pickupCountry: String(savedData.pickupCountry || ''),
+        pickupPincode: String(savedData.pickupPincode || ''),
+        deliveryCountry: String(savedData.destinationCountry || savedData.deliveryCountry || ''),
+        deliveryPincode: String(savedData.destinationPincode || savedData.deliveryPincode || ''),
+      });
+      setProducts([
+        syncInvoiceProduct({
+          id: 1,
+          name: 'Shipment Item',
+          currency: 'AED',
+          invoiceValues: savedInvoiceValues,
+        }),
+      ]);
+      setPackages(packagesFromCalculator.length > 0 ? packagesFromCalculator : [{ id: 1, actualWeight: '', length: '', breadth: '', height: '' }]);
+      setCompliance({
+        requireBOE: Boolean(savedData.requireBOE),
+        requireDO: Boolean(savedData.requireDO),
+        exportDeclaration: Boolean(savedData.exportDeclaration),
+        dutyExemption: Boolean(savedData.dutyExemption),
+        temporaryExportForRepairAndReturn: Boolean(savedData.temporaryExportForRepairAndReturn),
+        insurance: Boolean(savedData.insurance),
+      });
+      setRateCalculatorCode(responseData.code || savedData.code || code);
+      setErrors({});
+      toast.success(`Rate calculator details loaded from ${responseData.code || savedData.code || code}.`);
+    } catch (loadError) {
+      toast.error(loadError.message || 'Failed to load rate calculator details.');
+    } finally {
+      setLoadingRateCalculatorCode(false);
+    }
+  };
+
   const addPackage = () => {
     const newId = Math.max(...packages.map(p => p.id), 0) + 1;
     setPackages(prev => [
@@ -1902,6 +1983,24 @@ function CreateOrder() {
             {loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
           </div>
         )}
+        <div className="rate-calculator-code-tools">
+          <div>
+            <h3>Load Saved Rate Calculator Details</h3>
+            <p>Enter an RC code to fill the route, package details, invoice value, compliance options, and insurance selection.</p>
+          </div>
+          <div className="rate-calculator-code-actions">
+            <input
+              type="text"
+              value={rateCalculatorCode}
+              onChange={(event) => setRateCalculatorCode(event.target.value.toUpperCase())}
+              placeholder="RC-123456"
+              aria-label="Saved rate calculator code"
+            />
+            <button type="button" className="btn-load-rate-calculator" onClick={handleLoadRateCalculatorDetails} disabled={loadingRateCalculatorCode}>
+              {loadingRateCalculatorCode ? 'Loading...' : 'Load Details'}
+            </button>
+          </div>
+        </div>
         {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
         <form onSubmit={handleSubmit} className="create-order-form">
@@ -2029,6 +2128,16 @@ function CreateOrder() {
                 No
               </label>
             </div>
+          </div>
+
+          <div className="checkbox-group compliance-option">
+            <input
+              id="insurance"
+              type="checkbox"
+              checked={compliance.insurance}
+              onChange={(e) => setCompliance(prev => ({ ...prev, insurance: e.target.checked }))}
+            />
+            <label htmlFor="insurance">Add Shipment Insurance</label>
           </div>
         </div>
 

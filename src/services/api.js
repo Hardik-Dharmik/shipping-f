@@ -168,6 +168,25 @@ export const api = {
     });
   },
 
+  saveRateCalculatorDetails: async (rateData) => {
+    return apiRequest('/api/shipping/rate-calculator/save', {
+      method: 'POST',
+      body: JSON.stringify(rateData),
+    });
+  },
+
+  getRateCalculatorDetails: async (code) => {
+    return apiRequest(`/api/shipping/rate-calculator/${encodeURIComponent(code)}`, {
+      method: 'GET',
+    });
+  },
+
+  getSavedRateCalculatorDetails: async () => {
+    return apiRequest('/api/shipping/rate-calculator/saved', {
+      method: 'GET',
+    });
+  },
+
   getAddressFormById: async (id) => {
     return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'GET',

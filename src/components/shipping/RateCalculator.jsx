@@ -61,13 +61,24 @@ function RateCalculator() {
   const [destinationDropdownOpen, setDestinationDropdownOpen] = useState(false);
   const [pickupSearchQuery, setPickupSearchQuery] = useState('');
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('');
-  const [requireBOE, setRequireBOE] = useState(false);
-  const [requireDO, setRequireDO] = useState(false);
+  const [compliance, setCompliance] = useState({
+    requireBOE: false,
+    requireDO: false,
+    exportDeclaration: false,
+    dutyExemption: false,
+    temporaryExportForRepairAndReturn: false,
+    insurance: false,
+  });
   const [loading, setLoading] = useState(false);
   const [rateResult, setRateResult] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [savingBoxDetails, setSavingBoxDetails] = useState(false);
+  const [savingCalculatorDetails, setSavingCalculatorDetails] = useState(false);
+  const [savedCalculatorCode, setSavedCalculatorCode] = useState('');
+  const [savedCalculatorDetails, setSavedCalculatorDetails] = useState([]);
+  const [savedDetailsModalOpen, setSavedDetailsModalOpen] = useState(false);
+  const [loadingSavedCalculatorDetails, setLoadingSavedCalculatorDetails] = useState(false);
   const [loadingSavedBoxDetails, setLoadingSavedBoxDetails] = useState(false);
   const [savedBoxDetails, setSavedBoxDetails] = useState([]);
   const [latestSavedCode, setLatestSavedCode] = useState('');
@@ -119,6 +130,19 @@ function RateCalculator() {
       shipmentValue: hasAnyValue ? totalInvoiceValue.toFixed(2) : '',
     }));
   }, [invoiceValues]);
+
+  useEffect(() => {
+    const isUaeExport =
+      formData.pickupCountry === 'UAE' &&
+      formData.destinationCountry &&
+      formData.destinationCountry !== 'UAE';
+
+    setCompliance((current) =>
+      current.exportDeclaration === isUaeExport
+        ? current
+        : { ...current, exportDeclaration: isUaeExport }
+    );
+  }, [formData.destinationCountry, formData.pickupCountry]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -367,6 +391,84 @@ function RateCalculator() {
     }
   };
 
+  const buildRateData = () => {
+    const totalApplicableWeight = getTotalApplicableWeight();
+    const weightInKg = weightUnit === 'pound' ? totalApplicableWeight * 0.453592 : totalApplicableWeight;
+    const shipmentValue = Number(formData.shipmentValue) || 0;
+    const insuranceCharge = compliance.insurance ? Math.max(45, shipmentValue * 0.02) : 0;
+    const boxesData = boxes.map((box) => {
+      let lengthInCm = box.length ? parseFloat(box.length) : null;
+      let breadthInCm = box.breadth ? parseFloat(box.breadth) : null;
+      let heightInCm = box.height ? parseFloat(box.height) : null;
+
+      if (dimensionUnit === 'inches') {
+        if (lengthInCm) lengthInCm *= 2.54;
+        if (breadthInCm) breadthInCm *= 2.54;
+        if (heightInCm) heightInCm *= 2.54;
+      }
+
+      const quantity = parseInt(box.quantity, 10) || 1;
+      const boxActual = parseFloat(box.actualWeight) || 0;
+      const boxVolumetric = calculateBoxVolumetricWeight(box);
+      let boxWeightPerUnitInKg = Math.max(boxActual, boxVolumetric);
+      if (weightUnit === 'pound') boxWeightPerUnitInKg *= 0.453592;
+
+      return { quantity, actualWeight: boxWeightPerUnitInKg * quantity, length: lengthInCm, breadth: breadthInCm, height: heightInCm };
+    });
+
+    return {
+      pickupCountry: formData.pickupCountry,
+      pickupPincode: formData.pickupPincode,
+      destinationCountry: formData.destinationCountry,
+      destinationPincode: formData.destinationPincode,
+      actualWeight: weightInKg,
+      boxes: boxesData,
+      shipmentValue,
+      invoiceValues: normalizeInvoiceValues(invoiceValues),
+      requireBOE: compliance.requireBOE,
+      requireDO: compliance.requireDO,
+      exportDeclaration: compliance.exportDeclaration,
+      dutyExemption: compliance.dutyExemption,
+      temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
+      insurance: compliance.insurance,
+      insuranceCharge,
+    };
+  };
+
+  const handleSaveCalculatorDetails = async () => {
+    try {
+      setSavingCalculatorDetails(true);
+      const response = await api.saveRateCalculatorDetails(buildRateData());
+      const payload = response?.data?.data || response?.data || response || {};
+      const code = payload.code || payload.rateCalculatorCode || payload.rate_calculator_code;
+      if (!code) throw new Error('The saved calculator details did not include a code.');
+      setSavedCalculatorCode(code);
+      toast.success(`Calculator details saved. Code: ${code}`);
+    } catch (saveError) {
+      toast.error(saveError.message || 'Failed to save calculator details.');
+    } finally {
+      setSavingCalculatorDetails(false);
+    }
+  };
+
+  const handleViewSavedDetails = async () => {
+    try {
+      setSavedDetailsModalOpen(true);
+      setLoadingSavedCalculatorDetails(true);
+      const response = await api.getSavedRateCalculatorDetails();
+      const payload = response?.data?.data || response?.data || response || {};
+      const details = Array.isArray(payload)
+        ? payload
+        : payload.items || payload.savedDetails || payload.rateCalculators || payload.results || [];
+      setSavedCalculatorDetails(Array.isArray(details) ? details : []);
+    } catch (loadError) {
+      setSavedCalculatorDetails([]);
+      toast.error(loadError.message || 'Failed to load saved calculator details.');
+    } finally {
+      setLoadingSavedCalculatorDetails(false);
+    }
+  };
+
   const handleCalculate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -376,57 +478,7 @@ function RateCalculator() {
     setExpandedQuoteIndex(null);
 
     try {
-      // Get total applicable weight
-      const totalApplicableWeight = getTotalApplicableWeight();
-      
-      // Convert weight to kg if needed (API expects kg)
-      let weightInKg = totalApplicableWeight;
-      if (weightUnit === 'pound') {
-        weightInKg = totalApplicableWeight * 0.453592; // Convert pounds to kg
-      }
-
-      // Prepare boxes data for API - convert all dimensions to cm
-      const boxesData = boxes.map(box => {
-        let lengthInCm = box.length ? parseFloat(box.length) : null;
-        let breadthInCm = box.breadth ? parseFloat(box.breadth) : null;
-        let heightInCm = box.height ? parseFloat(box.height) : null;
-        
-        if (dimensionUnit === 'inches') {
-          if (lengthInCm) lengthInCm = lengthInCm * 2.54;
-          if (breadthInCm) breadthInCm = breadthInCm * 2.54;
-          if (heightInCm) heightInCm = heightInCm * 2.54;
-        }
-
-        // Calculate box applicable weight (per unit)
-        const quantity = parseInt(box.quantity) || 1;
-        const boxActual = parseFloat(box.actualWeight) || 0;
-        const boxVolumetric = calculateBoxVolumetricWeight(box);
-        let boxWeightPerUnitInKg = Math.max(boxActual, boxVolumetric);
-        if (weightUnit === 'pound') {
-          boxWeightPerUnitInKg = boxWeightPerUnitInKg * 0.453592;
-        }
-
-        return {
-          quantity: quantity,
-          actualWeight: boxWeightPerUnitInKg * quantity, // Total weight for all boxes of this type
-          length: lengthInCm,
-          breadth: breadthInCm,
-          height: heightInCm
-        };
-      });
-
-      // Prepare data for API
-      const rateData = {
-        pickupCountry: formData.pickupCountry,
-        pickupPincode: formData.pickupPincode,
-        destinationCountry: formData.destinationCountry,
-        destinationPincode: formData.destinationPincode,
-        actualWeight: weightInKg, // Total applicable weight converted to kg
-        boxes: boxesData, // Array of boxes with individual weights and dimensions
-        shipmentValue: parseFloat(formData.shipmentValue),
-        requireBOE: requireBOE,
-        requireDO: requireDO,
-      };
+      const rateData = buildRateData();
 
       const response = await api.calculateRate(rateData);
       
@@ -475,11 +527,18 @@ function RateCalculator() {
     setDimensionUnit('cm');
     setPickupSearchQuery('');
     setDestinationSearchQuery('');
-    setRequireBOE(false);
-    setRequireDO(false);
+    setCompliance({
+      requireBOE: false,
+      requireDO: false,
+      exportDeclaration: false,
+      dutyExemption: false,
+      temporaryExportForRepairAndReturn: false,
+      insurance: false,
+    });
     setPickupDropdownOpen(false);
     setDestinationDropdownOpen(false);
     setLatestSavedCode('');
+    setSavedCalculatorCode('');
     setResult(null);
     setError(null);
     setIsModalOpen(false);
@@ -1146,57 +1205,130 @@ function RateCalculator() {
             )}
           </div>
 
-          <div className="form-section">
-            <h2>Additional Services</h2>
+          <div className="form-section compliance-section">
+            <h2>Compliance &amp; Declarations</h2>
             <div className="form-row additional-services-grid">
               <div className="checkbox-group compliance-option">
                 <input
                   type="checkbox"
                   id="requireBOE"
-                  checked={requireBOE}
-                  onChange={(e) => setRequireBOE(e.target.checked)}
+                  checked={compliance.requireBOE}
+                  onChange={(e) => setCompliance((current) => ({ ...current, requireBOE: e.target.checked }))}
                 />
                 <label htmlFor="requireBOE">
-                  REQUIRE BOE (Optional - 100 AED)
+                  Require BOE (Bill of Entry) - Fee: 100 AED
                 </label>
               </div>
               <div className="checkbox-group compliance-option">
                 <input
                   type="checkbox"
                   id="requireDO"
-                  checked={requireDO}
-                  onChange={(e) => setRequireDO(e.target.checked)}
+                  checked={compliance.requireDO}
+                  onChange={(e) => setCompliance((current) => ({ ...current, requireDO: e.target.checked }))}
                 />
                 <label htmlFor="requireDO">
-                  REQUIRE D/O (Optional - 100 AED)
+                  Require D/O (Delivery Order) - Fee: 100 AED
                 </label>
               </div>
-              {formData.pickupCountry && formData.pickupCountry.toUpperCase() === 'UAE' && (
-                <div className="info-box">
-                  <span className="info-icon">i</span>
-                  <span>
-                    <strong>EXPORT DECLARATION</strong> is mandatory for all export bookings from UAE. 
-                    (Additional charge: 120 AED)
-                  </span>
+              <div className="checkbox-group compliance-option">
+                <input
+                  type="checkbox"
+                  id="exportDeclaration"
+                  checked={compliance.exportDeclaration}
+                  disabled={formData.pickupCountry === 'UAE' && formData.destinationCountry && formData.destinationCountry !== 'UAE'}
+                  onChange={(e) => setCompliance((current) => ({ ...current, exportDeclaration: e.target.checked }))}
+                />
+                <label htmlFor="exportDeclaration">Export Declaration (mandatory for UAE exports) - Fee: 120 AED</label>
+                {formData.pickupCountry === 'UAE' && formData.destinationCountry && formData.destinationCountry !== 'UAE' && <p className="charge-note">This fee is applied automatically for UAE export shipments.</p>}
+              </div>
+              <div className="radio-group">
+                <span className="radio-group-title">Duty Exemption</span>
+                <div className="radio-options">
+                  <label className="compliance-option compliance-radio-option" htmlFor="rateDutyExemptionYes"><input id="rateDutyExemptionYes" type="radio" name="dutyExemption" checked={compliance.dutyExemption === true} onChange={() => setCompliance((current) => ({ ...current, dutyExemption: true }))} />Yes</label>
+                  <label className="compliance-option compliance-radio-option" htmlFor="rateDutyExemptionNo"><input id="rateDutyExemptionNo" type="radio" name="dutyExemption" checked={compliance.dutyExemption === false} onChange={() => setCompliance((current) => ({ ...current, dutyExemption: false }))} />No</label>
                 </div>
-              )}
+              </div>
+              <div className="radio-group">
+                <span className="radio-group-title">Temporary Export for Repair and Return</span>
+                <div className="radio-options">
+                  <label className="compliance-option compliance-radio-option" htmlFor="rateTemporaryExportYes"><input id="rateTemporaryExportYes" type="radio" name="temporaryExportForRepairAndReturn" checked={compliance.temporaryExportForRepairAndReturn === true} onChange={() => setCompliance((current) => ({ ...current, temporaryExportForRepairAndReturn: true }))} />Yes</label>
+                  <label className="compliance-option compliance-radio-option" htmlFor="rateTemporaryExportNo"><input id="rateTemporaryExportNo" type="radio" name="temporaryExportForRepairAndReturn" checked={compliance.temporaryExportForRepairAndReturn === false} onChange={() => setCompliance((current) => ({ ...current, temporaryExportForRepairAndReturn: false }))} />No</label>
+                </div>
+              </div>
+              <div className="checkbox-group compliance-option">
+                <input type="checkbox" id="insurance" checked={compliance.insurance} onChange={(e) => setCompliance((current) => ({ ...current, insurance: e.target.checked }))} />
+                <label htmlFor="insurance">Add shipment insurance</label>
+              </div>
             </div>
           </div>
 
           <div className="form-actions">
+            <button type="button" onClick={handleSaveCalculatorDetails} className="btn btn-save-calculator" disabled={savingCalculatorDetails}>
+              {savingCalculatorDetails ? 'Saving...' : 'Save Details'}
+            </button>
             <button type="button" onClick={handleReset} className="btn btn-reset">
               Reset
             </button>
             <button type="submit" className="btn btn-calculate" disabled={loading}>
               {loading ? 'Calculating...' : 'Calculate'}
             </button>
+            <button type="button" onClick={handleViewSavedDetails} className="btn btn-view-saved-details">
+              View Saved Details
+            </button>
           </div>
+          {savedCalculatorCode && (
+            <div className="saved-calculator-code">
+              Saved calculator code: <strong>{savedCalculatorCode}</strong>
+              <button type="button" onClick={() => navigator.clipboard.writeText(savedCalculatorCode).then(() => toast.success('Calculator code copied.')).catch(() => toast.error('Could not copy calculator code.'))}>Copy Code</button>
+            </div>
+          )}
         </form>
 
         {/* Results Section */}
         {error && (
           <div className="error-message">
             <p>{error}</p>
+          </div>
+        )}
+
+        {savedDetailsModalOpen && (
+          <div className="app-modal-overlay" onClick={() => setSavedDetailsModalOpen(false)}>
+            <div className="app-modal app-modal--wide" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="saved-rate-details-title">
+              <div className="app-modal-header">
+                <h2 id="saved-rate-details-title" className="app-modal-title">Saved Rate Calculator Details</h2>
+                <button type="button" className="app-modal-close" onClick={() => setSavedDetailsModalOpen(false)} aria-label="Close">×</button>
+              </div>
+              <div className="app-modal-body">
+                {loadingSavedCalculatorDetails ? (
+                  <p className="saved-rate-details-state">Loading saved details...</p>
+                ) : savedCalculatorDetails.length === 0 ? (
+                  <p className="saved-rate-details-state">No saved calculator details found.</p>
+                ) : (
+                  <div className="saved-rate-details-list">
+                    {savedCalculatorDetails.map((detail, index) => {
+                      const data = detail.rateData || detail.calculatorData || detail.formData || detail.data || detail;
+                      const code = detail.code || data.code || 'Unavailable';
+                      const boxCount = Array.isArray(data.boxes) ? data.boxes.reduce((total, box) => total + (Number(box.quantity) || 1), 0) : 0;
+                      return (
+                        <div className="saved-rate-detail-card" key={detail.id || detail._id || code || index}>
+                          <div className="saved-rate-detail-card-header">
+                            <strong>{code}</strong>
+                            <button type="button" onClick={() => navigator.clipboard.writeText(code).then(() => toast.success('Calculator code copied.')).catch(() => toast.error('Could not copy calculator code.'))} disabled={code === 'Unavailable'}>Copy Code</button>
+                          </div>
+                          <div className="saved-rate-detail-grid">
+                            <span><b>Route</b>{data.pickupCountry || '—'} ({data.pickupPincode || '—'}) → {data.destinationCountry || data.deliveryCountry || '—'} ({data.destinationPincode || data.deliveryPincode || '—'})</span>
+                            <span><b>Invoice value</b>{formatCurrency(Number(data.shipmentValue) || 0)}</span>
+                            <span><b>Packages</b>{boxCount || '—'}</span>
+                            <span><b>Insurance</b>{data.insurance ? `Yes · ${formatQuoteAmount(data.insuranceCharge ?? Math.max(45, (Number(data.shipmentValue) || 0) * 0.02))}` : 'No'}</span>
+                            <span><b>Saved</b>{detail.createdAt || data.createdAt ? new Date(detail.createdAt || data.createdAt).toLocaleString() : '—'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1362,7 +1494,11 @@ function RateCalculator() {
                           const doCharge = Number(compliance.doCharge) || 0;
                           const exportCharge = Number(compliance.exportDeclarationCharge) || 0;
                           const additionalCharge = Number(breakdown.additionalCharges) || 0;
-                          const complianceAndAdditionalTotal = additionalCharge;
+                          const returnedInsuranceCharge = Number(compliance.insuranceCharge ?? breakdown.insuranceCharge) || 0;
+                          const calculatedInsuranceCharge = compliance.insurance ? Math.max(45, (Number(formData.shipmentValue) || 0) * 0.02) : 0;
+                          const insuranceCharge = returnedInsuranceCharge || calculatedInsuranceCharge;
+                          const complianceAndAdditionalTotal = additionalCharge + (returnedInsuranceCharge ? 0 : insuranceCharge);
+                          const totalCost = Number(quote.cost) + (returnedInsuranceCharge ? 0 : insuranceCharge);
                           const showFedExOfferInfo = isFedExCarrier(quote.carrier) && fedExRowOffers.length > 0;
                           const matchingSatisfiedOffer = satisfiedOffers.find(
                             (offer) => getOfferCarrierName(offer) === (quote.carrier || '').toLowerCase()
@@ -1391,7 +1527,7 @@ function RateCalculator() {
                                 </td>
                                 <td className={`cost ${matchingSatisfiedOffer ? 'cost--discounted' : ''}`}>
                                   <div className="cost-cell">
-                                    <span>{formatQuoteAmount(quote.cost, currency)}</span>
+                                    <span>{formatQuoteAmount(totalCost, currency)}</span>
                                     {matchingSatisfiedOffer && (
                                       <span className="discount-pill">Discounted</span>
                                     )}
@@ -1453,12 +1589,12 @@ function RateCalculator() {
                                       </div>
                                       <div className="quote-breakdown-subline">
                                         <span>
-                                          BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}
+                                          BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)} + Insurance {formatQuoteAmount(insuranceCharge, currency)}
                                         </span>
                                       </div>
                                       <div className="quote-breakdown-total">
                                         <span>Total Cost:</span>
-                                        <strong>{formatQuoteAmount(breakdown.totalCost ?? quote.cost, currency)}</strong>
+                                        <strong>{formatQuoteAmount((breakdown.totalCost ?? quote.cost) + (returnedInsuranceCharge ? 0 : insuranceCharge), currency)}</strong>
                                       </div>
                                     </div>
                                   </td>
