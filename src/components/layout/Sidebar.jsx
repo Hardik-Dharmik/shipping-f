@@ -15,7 +15,7 @@ function Sidebar() {
 
   // Auto-open orders menu if on orders page
   useEffect(() => {
-    if (location.pathname.startsWith('/orders')) {
+    if (location.pathname.startsWith('/orders') || location.pathname === '/contact-details') {
       setOrdersMenuOpen(true);
     }
   }, [location.pathname]);
@@ -67,7 +67,7 @@ function Sidebar() {
             </Link>
             <div className="sidebar-menu">
               <button
-                className={`sidebar-menu-toggle ${location.pathname.startsWith('/orders') ? 'active' : ''}`}
+                className={`sidebar-menu-toggle ${location.pathname.startsWith('/orders') || location.pathname === '/contact-details' ? 'active' : ''}`}
                 onClick={() => !isCollapsed && setOrdersMenuOpen(!ordersMenuOpen)}
                 title={isCollapsed ? 'Orders' : ''}
               >
@@ -111,6 +111,12 @@ function Sidebar() {
                     className={`sidebar-submenu-link ${location.pathname === '/orders/address-forms' ? 'active' : ''}`}
                   >
                     <span>Address Forms</span>
+                  </Link>
+                  <Link
+                    to="/contact-details"
+                    className={`sidebar-submenu-link ${location.pathname === '/contact-details' ? 'active' : ''}`}
+                  >
+                    <span>Saved Contacts</span>
                   </Link>
                 </div>
               )}

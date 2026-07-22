@@ -61,6 +61,23 @@ export const normalizeContactSuggestions = (response) => {
   return rawList.map((item) => normalizeContactDetail(item));
 };
 
+export const normalizeContactDetails = (response) => {
+  const payload = getResponseData(response);
+  const rawList = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.contacts)
+        ? payload.contacts
+        : Array.isArray(payload?.contactDetails)
+          ? payload.contactDetails
+          : Array.isArray(payload?.results)
+            ? payload.results
+            : [];
+
+  return rawList.map((item) => normalizeContactDetail(item));
+};
+
 export const toContactDetailPayload = (contact = {}, contactType = 'pickup') => ({
   contactType,
   details: {

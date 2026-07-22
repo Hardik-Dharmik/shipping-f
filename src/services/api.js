@@ -215,6 +215,25 @@ export const api = {
     });
   },
 
+  getContactDetails: async (params = {}) => {
+    return apiRequest(`/api/contact-details${buildQueryString(params)}`, {
+      method: 'GET',
+    });
+  },
+
+  updateContactDetail: async (id, payload) => {
+    return apiRequest(`/api/contact-details/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteContactDetail: async (id) => {
+    return apiRequest(`/api/contact-details/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
   updateAddressFormStatus: async (id, status) => {
     return apiRequest(`/api/address/address-forms/${id}`, {
       method: 'PATCH',

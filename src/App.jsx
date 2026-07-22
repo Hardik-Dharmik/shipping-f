@@ -24,6 +24,7 @@ import CreateOrder from './components/orders/create-order/CreateOrder';
 import AddressFormsList from './components/orders/address-form/list/AddressFormsList';
 import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
 import ShipmentConfirmed from './components/orders/shipment-confirmed/ShipmentConfirmed';
+import ContactDetailsList from './components/contact-details/ContactDetailsList';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -206,6 +207,14 @@ function AppRoutes() {
                       <Route
                         path="/billing"
                         element={<Billing />}
+                      />
+                      <Route
+                        path="/contact-details"
+                        element={
+                          <UserRoute>
+                            <ContactDetailsList />
+                          </UserRoute>
+                        }
                       />
                       <Route
                         path="/kyc"
