@@ -84,6 +84,23 @@ function RateCalculator() {
   const [latestSavedCode, setLatestSavedCode] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
+  // Pickup Extractor
+  const [pickupExtractPrompt, setPickupExtractPrompt] = useState(
+    "Extract pickup country and postal code/city from this shipping screenshot. Return JSON with pickupCountry and pickupPincode."
+  );
+
+  const [pickupExtractImage, setPickupExtractImage] = useState(null);
+  const [pickupExtractPreview, setPickupExtractPreview] = useState("");
+  const [pickupExtracting, setPickupExtracting] = useState(false);
+
+  // Destination Extractor
+  const [destinationExtractPrompt, setDestinationExtractPrompt] = useState(
+    "Extract destination country and postal code/city from this shipping screenshot. Return JSON with destinationCountry and destinationPincode."
+  );
+
+  const [destinationExtractImage, setDestinationExtractImage] = useState(null);
+  const [destinationExtractPreview, setDestinationExtractPreview] = useState("");
+  const [destinationExtracting, setDestinationExtracting] = useState(false);
   
   const pickupDropdownRef = useRef(null);
   const destinationDropdownRef = useRef(null);
@@ -608,6 +625,116 @@ function RateCalculator() {
     return meetsActualWeight && meetsChargeableWeight;
   };
 
+  const handlePickupScreenshotUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      setPickupExtractImage(file);
+      setPickupExtractPreview(URL.createObjectURL(file));
+    };
+
+    const handlePickupPasteScreenshot = (e) => {
+      const items = e.clipboardData?.items || [];
+
+      for (const item of items) {
+        if (item.type.startsWith("image")) {
+          const file = item.getAsFile();
+
+          setPickupExtractImage(file);
+          setPickupExtractPreview(URL.createObjectURL(file));
+
+          toast.success("Pickup screenshot pasted.");
+          break;
+        }
+      }
+    };
+
+    const handleDestinationScreenshotUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  setDestinationExtractImage(file);
+  setDestinationExtractPreview(URL.createObjectURL(file));
+};
+
+const handleDestinationPasteScreenshot = (e) => {
+  const items = e.clipboardData?.items || [];
+
+  for (const item of items) {
+    if (item.type.startsWith("image")) {
+      const file = item.getAsFile();
+
+      setDestinationExtractImage(file);
+      setDestinationExtractPreview(URL.createObjectURL(file));
+
+      toast.success("Destination screenshot pasted.");
+      break;
+    }
+  }
+};
+
+const handleExtractPickup = async () => {
+  if (!pickupExtractImage) {
+    toast.error("Upload pickup screenshot.");
+    return;
+  }
+
+  try {
+    setPickupExtracting(true);
+
+    const formDataObj = new FormData();
+    formDataObj.append("screenshot", pickupExtractImage);
+    formDataObj.append("prompt", pickupExtractPrompt);
+
+    const response = await api.extractText(formDataObj);
+
+    const data = response.data;
+
+    setFormData((prev) => ({
+      ...prev,
+      pickupCountry: data.country || "",
+      pickupPincode: data.postalCode || data.city || ""
+    }));
+
+    toast.success("Pickup details extracted.");
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    setPickupExtracting(false);
+  }
+};
+
+const handleExtractDestination = async () => {
+  if (!destinationExtractImage) {
+    toast.error("Upload destination screenshot.");
+    return;
+  }
+
+  try {
+    setDestinationExtracting(true);
+
+    const formDataObj = new FormData();
+    formDataObj.append("screenshot", destinationExtractImage);
+    formDataObj.append("prompt", destinationExtractPrompt);
+
+    const response = await api.extractText(formDataObj);
+
+    const data = response.data;
+
+    setFormData((prev) => ({
+      ...prev,
+      destinationCountry: data.country || "",
+      destinationPincode: data.postalCode || data.city || ""
+    }));
+
+    toast.success("Destination details extracted.");
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    setDestinationExtracting(false);
+  }
+};
+
   const isFedExCarrier = (carrierName = '') => carrierName.toLowerCase().includes('fedex');
 
   const getOfferCarrierName = (offer) => (offer?.carrier || '').toLowerCase();
@@ -626,6 +753,56 @@ function RateCalculator() {
         <h1>Rate Calculator</h1>
         <form onSubmit={handleCalculate} className="calculator-form">
           <div className="form-section">
+            <div
+    className="form-section ai-extractor"
+    onPaste={handlePickupPasteScreenshot}
+    tabIndex={0}
+>
+    <h2>AI Pickup Extractor</h2>
+
+    <div className="form-row">
+        <div className="form-group">
+            <label>Screenshot</label>
+
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handlePickupScreenshotUpload}
+            />
+
+            <span className="ai-hint">
+                Upload or press <strong>Ctrl + V</strong> to paste a screenshot.
+            </span>
+
+            {pickupExtractPreview && (
+                <div className="ai-preview">
+                    <img src={pickupExtractPreview} alt="Pickup Preview" />
+                </div>
+            )}
+        </div>
+
+        <div className="form-group">
+            <label>Prompt</label>
+
+            <textarea
+                className="ai-prompt"
+                value={pickupExtractPrompt}
+                onChange={(e) => setPickupExtractPrompt(e.target.value)}
+            />
+        </div>
+    </div>
+
+    <div className="ai-actions">
+        <button
+            type="button"
+            className="btn btn-extract"
+            onClick={handleExtractPickup}
+            disabled={pickupExtracting}
+        >
+            {pickupExtracting ? "Extracting..." : "Extract Pickup"}
+        </button>
+    </div>
+</div>
             <h2>Pickup Details</h2>
             <div className="form-row">
               <div className="form-group">

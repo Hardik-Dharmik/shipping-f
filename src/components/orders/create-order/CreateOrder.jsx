@@ -185,6 +185,13 @@ function CreateOrder() {
 
   const [formData, setFormData] = useState(INITIAL_ORDER_FORM_DATA);
 
+  const [extractPrompt, setExtractPrompt] = useState(
+    "Extract Shipper company name, address, postal code/city, phone number, contact person and email."
+  );
+
+  const [extractImage, setExtractImage] = useState(null);
+  const [extractPreview, setExtractPreview] = useState("");
+  const [extracting, setExtracting] = useState(false);
   const [products, setProducts] = useState([
     syncInvoiceProduct({
       id: 1,
@@ -249,6 +256,13 @@ function CreateOrder() {
   const offersForCards = hasFedExQuote ? unsatisfiedOffers : allOffers;
   const fedExRowOffers = hasFedExQuote ? satisfiedOffers : [];
 
+  const [deliveryExtractPrompt, setDeliveryExtractPrompt] = useState(
+    "Extract Receiver company name, address, postal code/city, phone number, contact person and email."
+  );
+
+  const [deliveryExtractImage, setDeliveryExtractImage] = useState(null);
+  const [deliveryExtractPreview, setDeliveryExtractPreview] = useState("");
+  const [deliveryExtracting, setDeliveryExtracting] = useState(false);
   useEffect(() => {
     setSavedPickupContacts(loadSavedPickupContacts());
     setSavedDeliveryContacts(loadSavedDeliveryContacts());
@@ -403,6 +417,127 @@ function CreateOrder() {
       }));
     }
   };
+
+  const handleScreenshotUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  setExtractImage(file);
+  setExtractPreview(URL.createObjectURL(file));
+};
+
+const handlePasteScreenshot = (e) => {
+  const items = e.clipboardData?.items || [];
+
+  for (const item of items) {
+    if (item.type.startsWith("image")) {
+      const file = item.getAsFile();
+
+      setExtractImage(file);
+      setExtractPreview(URL.createObjectURL(file));
+
+      toast.success("Screenshot pasted successfully.");
+      break;
+    }
+  }
+};
+
+const handleExtractAddress = async () => {
+  if (!extractImage) {
+    toast.error("Upload or paste a screenshot.");
+    return;
+  }
+
+  try {
+    setExtracting(true);
+
+    const formData = new FormData();
+    formData.append("screenshot", extractImage);
+    formData.append("prompt", extractPrompt);
+
+    const response = await api.extractText(formData);
+
+    const data = response.data;
+
+    setFormData(prev => ({
+      ...prev,
+
+      pickupCompanyName: data.companyName || "",
+      pickupCompleteAddress: data.address || "",
+      pickupPincode: data.postalCode || data.city || "",
+      pickupMobileNo: data.phoneNumber || "",
+      pickupFullName: data.contactPerson || "",
+      pickupEmail: data.email || ""
+    }));
+
+    toast.success("Address extracted successfully.");
+  } catch (err) {
+    toast.error(err.message || "Extraction failed.");
+  } finally {
+    setExtracting(false);
+  }
+};
+
+const handleDeliveryScreenshotUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  setDeliveryExtractImage(file);
+  setDeliveryExtractPreview(URL.createObjectURL(file));
+};
+
+const handleDeliveryPasteScreenshot = (e) => {
+  const items = e.clipboardData?.items || [];
+
+  for (const item of items) {
+    if (item.type.startsWith("image")) {
+      const file = item.getAsFile();
+
+      setDeliveryExtractImage(file);
+      setDeliveryExtractPreview(URL.createObjectURL(file));
+
+      toast.success("Screenshot pasted successfully.");
+      break;
+    }
+  }
+};
+
+const handleExtractDeliveryAddress = async () => {
+  if (!deliveryExtractImage) {
+    toast.error("Upload or paste a screenshot.");
+    return;
+  }
+
+  try {
+    setDeliveryExtracting(true);
+
+    const formData = new FormData();
+
+    formData.append("screenshot", deliveryExtractImage);
+    formData.append("prompt", deliveryExtractPrompt);
+
+    const response = await api.extractText(formData);
+
+    const data = response.data;
+
+    setFormData((prev) => ({
+      ...prev,
+      deliveryCompanyName: data.companyName || "",
+      deliveryCompleteAddress: data.address || "",
+      deliveryPincode: data.postalCode || data.city || "",
+      deliveryCity: data.city || "",
+      deliveryMobileNo: data.phone || "",
+      deliveryFullName: data.contactPerson || "",
+      deliveryEmail: data.email || "",
+    }));
+
+    toast.success("Destination address extracted successfully.");
+  } catch (err) {
+    toast.error(err.message || "Extraction failed.");
+  } finally {
+    setDeliveryExtracting(false);
+  }
+};
 
   const handleInvoiceFilesChange = (e) => {
     setInvoiceFiles(Array.from(e.target.files || []));
@@ -2004,7 +2139,134 @@ function CreateOrder() {
         {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
         <form onSubmit={handleSubmit} className="create-order-form">
+          <div
+    className="document-section"
+    onPaste={handlePasteScreenshot}
+    tabIndex={0}
+>
+    <h2 className="section-title">
+        AI Address Extractor
+    </h2>
+
+    <div className="form-grid">
+
+        <div className="form-group">
+            <label>Screenshot</label>
+
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleScreenshotUpload}
+            />
+
+            <small>
+                Upload a screenshot or click here and press
+                <strong> Ctrl + V </strong>
+                to paste one.
+            </small>
+
+            {extractPreview && (
+                <div
+                    style={{
+                        marginTop: 10
+                    }}
+                >
+                    <img
+                        src={extractPreview}
+                        alt="preview"
+                        style={{
+                            maxWidth: 350,
+                            borderRadius: 8
+                        }}
+                    />
+                </div>
+            )}
+        </div>
+
+        <div className="form-group full-width">
+            <label>Prompt</label>
+
+            <textarea
+                rows={4}
+                value={extractPrompt}
+                onChange={(e) => setExtractPrompt(e.target.value)}
+            />
+        </div>
+
+    </div>
+
+    <button
+        type="button"
+        className="btn-submit"
+        onClick={handleExtractAddress}
+        disabled={extracting}
+    >
+        {extracting ? "Extracting..." : "Extract Pickup Address"}
+    </button>
+</div>
           {renderAddressSection('pickup', 'Pickup Address')}
+
+          <div
+  className="document-section"
+  onPaste={handleDeliveryPasteScreenshot}
+  tabIndex={0}
+>
+  <h2 className="section-title">
+    AI Destination Address Extractor
+  </h2>
+
+  <div className="form-grid">
+
+    <div className="form-group">
+      <label>Receiver Screenshot</label>
+
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleDeliveryScreenshotUpload}
+      />
+
+      <small>
+        Upload a receiver screenshot or press <strong>Ctrl + V</strong>.
+      </small>
+
+      {deliveryExtractPreview && (
+        <div style={{ marginTop: 10 }}>
+          <img
+            src={deliveryExtractPreview}
+            alt="preview"
+            style={{
+              maxWidth: 350,
+              borderRadius: 8
+            }}
+          />
+        </div>
+      )}
+    </div>
+
+    <div className="form-group full-width">
+      <label>Prompt</label>
+
+      <textarea
+        rows={4}
+        value={deliveryExtractPrompt}
+        onChange={(e) => setDeliveryExtractPrompt(e.target.value)}
+      />
+    </div>
+
+  </div>
+
+  <button
+    type="button"
+    className="btn-submit"
+    onClick={handleExtractDeliveryAddress}
+    disabled={deliveryExtracting}
+  >
+    {deliveryExtracting
+      ? "Extracting..."
+      : "Extract Destination Address"}
+  </button>
+</div>
           {renderAddressSection('delivery', 'Delivery Address')}
           {renderProductSection()}
           {renderPackageSection()}

@@ -361,6 +361,12 @@ export const api = {
     });
   },
 
+  extractText: async(formData) =>{
+    return apiRequest("/api/ai/extract-text", {
+        method: "POST",
+        body: formData
+    });
+  }
   
 };
 

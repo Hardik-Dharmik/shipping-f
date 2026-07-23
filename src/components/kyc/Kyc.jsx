@@ -212,7 +212,7 @@ function Kyc() {
           ) : (
             <section className="kyc-note">
               <p>
-                Mandatory: Credit Application Form and Trade Licence. Optional: TRN Number
+                Mandatory: Credit Application Form and Trade Licence.
                 Document. Accepted format: PDF only.
               </p>
               <span className="kyc-count">
@@ -254,9 +254,9 @@ function Kyc() {
                         <div className="kyc-document-heading">
                           <h2>{document.title}</h2>
                           <span
-                            className={`kyc-document-badge ${document.required ? 'required' : 'optional'}`}
+                            className={`kyc-document-badge ${document.required ? 'required' : ''}`}
                           >
-                            {document.required ? 'Mandatory' : 'Optional'}
+                            {document.required ? 'Mandatory' : ''}
                           </span>
                         </div>
                         <p>{document.description}</p>

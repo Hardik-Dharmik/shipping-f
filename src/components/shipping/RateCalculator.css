@@ -932,3 +932,59 @@
   }
 }
 
+/* AI Extractor */
+
+.ai-extractor {
+    margin-bottom: 24px;
+}
+
+.ai-preview {
+    margin-top: 12px;
+}
+
+.ai-preview img {
+    max-width: 300px;
+    max-height: 250px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.ai-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #777;
+}
+
+.ai-prompt {
+    width: 100%;
+    min-height: 90px;
+    resize: vertical;
+}
+
+.ai-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-extract {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.btn-extract:hover:not(:disabled) {
+    background: #2980b9;
+}
+
+.btn-extract:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
