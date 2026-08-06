@@ -66,8 +66,52 @@ const COUNTRY_CODE_MAP = {
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
 
 const getCountryCode = (country = '') => {
-  const normalizedCountry = country.trim().toUpperCase();
-  return COUNTRY_CODE_MAP[normalizedCountry] || 'in';
+  const normalizedCountry = (country || '').trim().toUpperCase();
+
+  if (!normalizedCountry) return 'in';
+
+  // If already a two-letter alpha2 code, return it lowercased
+  if (/^[A-Z]{2}$/.test(normalizedCountry)) {
+    return normalizedCountry.toLowerCase();
+  }
+
+  // Direct exact match
+  if (COUNTRY_CODE_MAP[normalizedCountry]) {
+    return COUNTRY_CODE_MAP[normalizedCountry];
+  }
+
+  // Common aliases mapping to our country keys
+  const ALIAS_TO_KEY = {
+    'UNITED ARAB EMIRATES': 'UAE',
+    'UNITED ARAB EMIRATE': 'UAE',
+    'U.A.E.': 'UAE',
+    'UNITED STATES': 'USA',
+    'UNITED STATES OF AMERICA': 'USA',
+    'AMERICA': 'USA',
+    'US': 'USA',
+    'UNITED KINGDOM': 'UK',
+    'GREAT BRITAIN': 'UK',
+    'BRITAIN': 'UK',
+    'ENGLAND': 'UK',
+    'REPUBLIC OF KOREA': 'SOUTH KOREA',
+    "PEOPLE'S REPUBLIC OF CHINA": 'CHINA',
+    'CHINA, PRC': 'CHINA',
+    'KINGDOM OF SAUDI ARABIA': 'SAUDI',
+  };
+
+  if (ALIAS_TO_KEY[normalizedCountry] && COUNTRY_CODE_MAP[ALIAS_TO_KEY[normalizedCountry]]) {
+    return COUNTRY_CODE_MAP[ALIAS_TO_KEY[normalizedCountry]];
+  }
+
+  // Try substring matches: handle values like 'United Arab Emirates', 'UAE (Dubai)', etc.
+  for (const [key, code] of Object.entries(COUNTRY_CODE_MAP)) {
+    if (normalizedCountry.includes(key) || key.includes(normalizedCountry)) {
+      return code;
+    }
+  }
+
+  // Fallback to India if nothing matches
+  return 'in';
 };
 
 const getSuggestionValue = (item) => {
@@ -82,11 +126,56 @@ const getSuggestionValue = (item) => {
     item?.text ||
     item?.city ||
     item?.cityName ||
+    item?.locality ||
+    item?.town ||
+    item?.district ||
     item?.pincode ||
+    item?.pinCode ||
     item?.postalCode ||
+    item?.postal_code ||
+    item?.zip ||
+    item?.zipCode ||
+    item?.postcode ||
     item?.country ||
     item?.countryName ||
     item?.code ||
+    ''
+  );
+};
+
+const getPincodeValue = (item) => {
+  if (typeof item === 'string') {
+    return item.split(' - ')[0]?.trim() || item;
+  }
+
+  return (
+    item?.pincode ||
+    item?.pinCode ||
+    item?.postalCode ||
+    item?.postal_code ||
+    item?.zip ||
+    item?.zipCode ||
+    item?.postcode ||
+    item?.value ||
+    item?.code ||
+    ''
+  );
+};
+
+const getCityValue = (item) => {
+  if (typeof item === 'string') {
+    return item.split(' - ').slice(1).join(' - ').trim() || item;
+  }
+
+  return (
+    item?.city ||
+    item?.cityName ||
+    item?.name ||
+    item?.label ||
+    item?.text ||
+    item?.locality ||
+    item?.town ||
+    item?.district ||
     ''
   );
 };
@@ -97,8 +186,8 @@ const formatSuggestionLabel = (suggestion, fieldType = 'default') => {
   }
 
   if (fieldType === 'pincode') {
-    const pincode = suggestion?.pincode || suggestion?.postalCode || suggestion?.value || suggestion?.code || '';
-    const city = suggestion?.city || suggestion?.cityName || suggestion?.name || suggestion?.label || '';
+    const pincode = getPincodeValue(suggestion);
+    const city = getCityValue(suggestion);
     return [pincode, city].filter(Boolean).join(' - ');
   }
 
@@ -738,9 +827,10 @@ function CreateOrder() {
 
   const handleSelectSuggestion = (prefix, field, value) => {
     const fieldName = `${prefix}${field}`;
+    const nextValue = field === 'Pincode' ? getPincodeValue(value) : value;
     setFormData(prev => ({
       ...prev,
-      [fieldName]: value,
+      [fieldName]: nextValue,
     }));
 
     if (prefix === 'pickup') {

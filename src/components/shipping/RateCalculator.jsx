@@ -67,11 +67,56 @@ const getSuggestionValue = (item) => {
     item?.text ||
     item?.city ||
     item?.cityName ||
+    item?.locality ||
+    item?.town ||
+    item?.district ||
     item?.pincode ||
+    item?.pinCode ||
     item?.postalCode ||
+    item?.postal_code ||
+    item?.zip ||
+    item?.zipCode ||
+    item?.postcode ||
     item?.country ||
     item?.countryName ||
     item?.code ||
+    ''
+  );
+};
+
+const getPincodeValue = (item) => {
+  if (typeof item === 'string') {
+    return item.split(' - ')[0]?.trim() || item;
+  }
+
+  return (
+    item?.pincode ||
+    item?.pinCode ||
+    item?.postalCode ||
+    item?.postal_code ||
+    item?.zip ||
+    item?.zipCode ||
+    item?.postcode ||
+    item?.value ||
+    item?.code ||
+    ''
+  );
+};
+
+const getCityValue = (item) => {
+  if (typeof item === 'string') {
+    return item.split(' - ').slice(1).join(' - ').trim() || item;
+  }
+
+  return (
+    item?.city ||
+    item?.cityName ||
+    item?.name ||
+    item?.label ||
+    item?.text ||
+    item?.locality ||
+    item?.town ||
+    item?.district ||
     ''
   );
 };
@@ -82,8 +127,8 @@ const formatSuggestionLabel = (suggestion, fieldType = 'default') => {
   }
 
   if (fieldType === 'pincode') {
-    const pincode = suggestion?.pincode || suggestion?.postalCode || suggestion?.value || suggestion?.code || '';
-    const city = suggestion?.city || suggestion?.cityName || suggestion?.name || suggestion?.label || '';
+    const pincode = getPincodeValue(suggestion);
+    const city = getCityValue(suggestion);
     return [pincode, city].filter(Boolean).join(' - ');
   }
 
@@ -1080,7 +1125,7 @@ const handleExtractDestination = async () => {
                             key={suggestion}
                             className={`dropdown-option ${formData.pickupPincode === suggestion ? 'selected' : ''}`}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, pickupPincode: suggestion }));
+                              setFormData((prev) => ({ ...prev, pickupPincode: getPincodeValue(suggestion) }));
                               setPickupPincodeSuggestionsOpen(false);
                             }}
                           >
@@ -1167,7 +1212,7 @@ const handleExtractDestination = async () => {
                             key={suggestion}
                             className={`dropdown-option ${formData.destinationPincode === suggestion ? 'selected' : ''}`}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, destinationPincode: suggestion }));
+                              setFormData((prev) => ({ ...prev, destinationPincode: getPincodeValue(suggestion) }));
                               setDestinationPincodeSuggestionsOpen(false);
                             }}
                           >
