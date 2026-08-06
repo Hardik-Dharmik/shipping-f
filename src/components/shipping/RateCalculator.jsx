@@ -32,6 +32,78 @@ const COUNTRIES = [
 // Countries that use city name instead of pincode
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
 
+const COUNTRY_CODE_MAP = {
+  UAE: 'ae',
+  GERMANY: 'de',
+  UK: 'gb',
+  USA: 'us',
+  INDIA: 'in',
+  CHINA: 'cn',
+  'SOUTH KOREA': 'kr',
+  FRANCE: 'fr',
+  AUSTRALIA: 'au',
+  CANADA: 'ca',
+  SAUDI: 'sa',
+  BAHRAIN: 'bh',
+  OMAN: 'om',
+  QATAR: 'qa',
+  EGYPT: 'eg',
+};
+
+const getCountryCode = (country = '') => {
+  const normalizedCountry = country.trim().toUpperCase();
+  return COUNTRY_CODE_MAP[normalizedCountry] || 'in';
+};
+
+const getSuggestionValue = (item) => {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return (
+    item?.name ||
+    item?.value ||
+    item?.label ||
+    item?.text ||
+    item?.city ||
+    item?.cityName ||
+    item?.pincode ||
+    item?.postalCode ||
+    item?.country ||
+    item?.countryName ||
+    item?.code ||
+    ''
+  );
+};
+
+const formatSuggestionLabel = (suggestion, fieldType = 'default') => {
+  if (typeof suggestion === 'string') {
+    return suggestion;
+  }
+
+  if (fieldType === 'pincode') {
+    const pincode = suggestion?.pincode || suggestion?.postalCode || suggestion?.value || suggestion?.code || '';
+    const city = suggestion?.city || suggestion?.cityName || suggestion?.name || suggestion?.label || '';
+    return [pincode, city].filter(Boolean).join(' - ');
+  }
+
+  return getSuggestionValue(suggestion);
+};
+
+const normalizeLocationSuggestions = (response, fallbackItems = [], fieldType = 'default') => {
+  const payload = response?.data ?? response;
+  const list = payload?.suggestions ?? payload?.results ?? payload?.items ?? payload;
+
+  if (Array.isArray(list)) {
+    return list
+      .map((item) => formatSuggestionLabel(item, fieldType))
+      .filter(Boolean)
+      .slice(0, 10);
+  }
+
+  return fallbackItems;
+};
+
 function RateCalculator() {
   const [formData, setFormData] = useState({
     pickupCountry: '',
@@ -61,6 +133,16 @@ function RateCalculator() {
   const [destinationDropdownOpen, setDestinationDropdownOpen] = useState(false);
   const [pickupSearchQuery, setPickupSearchQuery] = useState('');
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('');
+  const [pickupCountrySuggestions, setPickupCountrySuggestions] = useState([]);
+  const [destinationCountrySuggestions, setDestinationCountrySuggestions] = useState([]);
+  const [pickupPincodeSuggestions, setPickupPincodeSuggestions] = useState([]);
+  const [destinationPincodeSuggestions, setDestinationPincodeSuggestions] = useState([]);
+  const [loadingPickupCountrySuggestions, setLoadingPickupCountrySuggestions] = useState(false);
+  const [loadingDestinationCountrySuggestions, setLoadingDestinationCountrySuggestions] = useState(false);
+  const [loadingPickupPincodeSuggestions, setLoadingPickupPincodeSuggestions] = useState(false);
+  const [loadingDestinationPincodeSuggestions, setLoadingDestinationPincodeSuggestions] = useState(false);
+  const [pickupPincodeSuggestionsOpen, setPickupPincodeSuggestionsOpen] = useState(false);
+  const [destinationPincodeSuggestionsOpen, setDestinationPincodeSuggestionsOpen] = useState(false);
   const [compliance, setCompliance] = useState({
     requireBOE: false,
     requireDO: false,
@@ -149,6 +231,122 @@ function RateCalculator() {
   }, [invoiceValues]);
 
   useEffect(() => {
+    if (!pickupDropdownOpen) {
+      return;
+    }
+
+    const query = formData.pickupCountry.trim();
+    if (!query || query.length < 2) {
+      setPickupCountrySuggestions([]);
+      setLoadingPickupCountrySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupCountrySuggestions(true);
+        const response = await api.getCountrySuggestions(query, 10);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setPickupCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+      } catch (error) {
+        console.error('Pickup country suggestions error:', error);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setPickupCountrySuggestions(fallbackSuggestions);
+      } finally {
+        setLoadingPickupCountrySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupCountry, pickupDropdownOpen]);
+
+  useEffect(() => {
+    if (!destinationDropdownOpen) {
+      return;
+    }
+
+    const query = formData.destinationCountry.trim();
+    if (!query || query.length < 2) {
+      setDestinationCountrySuggestions([]);
+      setLoadingDestinationCountrySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDestinationCountrySuggestions(true);
+        const response = await api.getCountrySuggestions(query, 10);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setDestinationCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+      } catch (error) {
+        console.error('Destination country suggestions error:', error);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setDestinationCountrySuggestions(fallbackSuggestions);
+      } finally {
+        setLoadingDestinationCountrySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.destinationCountry, destinationDropdownOpen]);
+
+  useEffect(() => {
+    if (!pickupPincodeSuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.pickupPincode.trim();
+    if (!query || query.length < 2) {
+      setPickupPincodeSuggestions([]);
+      setLoadingPickupPincodeSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupPincodeSuggestions(true);
+        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+      } catch (error) {
+        console.error('Pickup pincode suggestions error:', error);
+        setPickupPincodeSuggestions([]);
+      } finally {
+        setLoadingPickupPincodeSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
+
+  useEffect(() => {
+    if (!destinationPincodeSuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.destinationPincode.trim();
+    if (!query || query.length < 2) {
+      setDestinationPincodeSuggestions([]);
+      setLoadingDestinationPincodeSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDestinationPincodeSuggestions(true);
+        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.destinationCountry), 10);
+        setDestinationPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+      } catch (error) {
+        console.error('Destination pincode suggestions error:', error);
+        setDestinationPincodeSuggestions([]);
+      } finally {
+        setLoadingDestinationPincodeSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.destinationPincode, formData.destinationCountry, destinationPincodeSuggestionsOpen]);
+
+  useEffect(() => {
     const isUaeExport =
       formData.pickupCountry === 'UAE' &&
       formData.destinationCountry &&
@@ -167,6 +365,13 @@ function RateCalculator() {
       ...prev,
       [name]: value
     }));
+
+    if (name === 'pickupPincode') {
+      setPickupPincodeSuggestionsOpen(true);
+    }
+    if (name === 'destinationPincode') {
+      setDestinationPincodeSuggestionsOpen(true);
+    }
   };
 
   const updateInvoiceValue = (index, value) => {
@@ -190,10 +395,11 @@ function RateCalculator() {
   };
 
   const filteredCountries = (query) => {
-    if (!query) return COUNTRIES;
-    return COUNTRIES.filter(country =>
-      country.toLowerCase().includes(query.toLowerCase())
-    );
+    const fallbackCountries = !query
+      ? COUNTRIES
+      : COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase()));
+
+    return fallbackCountries;
   };
 
   const requiresCityName = (country) => {
@@ -402,9 +608,11 @@ function RateCalculator() {
     if (field === 'pickupCountry') {
       setPickupDropdownOpen(false);
       setPickupSearchQuery('');
+      setPickupCountrySuggestions([]);
     } else {
       setDestinationDropdownOpen(false);
       setDestinationSearchQuery('');
+      setDestinationCountrySuggestions([]);
     }
   };
 
@@ -828,21 +1036,9 @@ const handleExtractDestination = async () => {
                   />
                   {pickupDropdownOpen && (
                     <div className="dropdown-list">
-                      <input
-                        type="text"
-                        className="dropdown-search"
-                        placeholder="Search countries..."
-                        value={pickupSearchQuery}
-                        onChange={(e) => {
-                          setPickupSearchQuery(e.target.value);
-                          setFormData(prev => ({ ...prev, pickupCountry: e.target.value }));
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
                       <div className="dropdown-options">
-                        {filteredCountries(pickupSearchQuery).length > 0 ? (
-                          filteredCountries(pickupSearchQuery).map((country) => (
+                        {(pickupCountrySuggestions.length > 0 ? pickupCountrySuggestions : filteredCountries(pickupSearchQuery)).length > 0 ? (
+                          (pickupCountrySuggestions.length > 0 ? pickupCountrySuggestions : filteredCountries(pickupSearchQuery)).map((country) => (
                             <div
                               key={country}
                               className={`dropdown-option ${formData.pickupCountry === country ? 'selected' : ''}`}
@@ -859,7 +1055,7 @@ const handleExtractDestination = async () => {
                   )}
                 </div>
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label htmlFor="pickupPincode">{getPickupFieldLabel()}</label>
                 <input
                   type="text"
@@ -867,9 +1063,36 @@ const handleExtractDestination = async () => {
                   name="pickupPincode"
                   value={formData.pickupPincode}
                   onChange={handleChange}
+                  onFocus={() => setPickupPincodeSuggestionsOpen(true)}
+                  onBlur={() => setTimeout(() => setPickupPincodeSuggestionsOpen(false), 150)}
                   required
                   placeholder={getPickupFieldPlaceholder()}
+                  autoComplete="off"
                 />
+                {pickupPincodeSuggestionsOpen && (
+                  <div className="dropdown-list">
+                    <div className="dropdown-options">
+                      {loadingPickupPincodeSuggestions ? (
+                        <div className="dropdown-option no-results">Loading suggestions...</div>
+                      ) : pickupPincodeSuggestions.length > 0 ? (
+                        pickupPincodeSuggestions.map((suggestion) => (
+                          <div
+                            key={suggestion}
+                            className={`dropdown-option ${formData.pickupPincode === suggestion ? 'selected' : ''}`}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, pickupPincode: suggestion }));
+                              setPickupPincodeSuggestionsOpen(false);
+                            }}
+                          >
+                            {suggestion}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-option no-results">No pincode suggestions found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -900,21 +1123,9 @@ const handleExtractDestination = async () => {
                   />
                   {destinationDropdownOpen && (
                     <div className="dropdown-list">
-                      <input
-                        type="text"
-                        className="dropdown-search"
-                        placeholder="Search countries..."
-                        value={destinationSearchQuery}
-                        onChange={(e) => {
-                          setDestinationSearchQuery(e.target.value);
-                          setFormData(prev => ({ ...prev, destinationCountry: e.target.value }));
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
                       <div className="dropdown-options">
-                        {filteredCountries(destinationSearchQuery).length > 0 ? (
-                          filteredCountries(destinationSearchQuery).map((country) => (
+                        {(destinationCountrySuggestions.length > 0 ? destinationCountrySuggestions : filteredCountries(destinationSearchQuery)).length > 0 ? (
+                          (destinationCountrySuggestions.length > 0 ? destinationCountrySuggestions : filteredCountries(destinationSearchQuery)).map((country) => (
                             <div
                               key={country}
                               className={`dropdown-option ${formData.destinationCountry === country ? 'selected' : ''}`}
@@ -931,7 +1142,7 @@ const handleExtractDestination = async () => {
                   )}
                 </div>
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label htmlFor="destinationPincode">{getDestinationFieldLabel()}</label>
                 <input
                   type="text"
@@ -939,9 +1150,36 @@ const handleExtractDestination = async () => {
                   name="destinationPincode"
                   value={formData.destinationPincode}
                   onChange={handleChange}
+                  onFocus={() => setDestinationPincodeSuggestionsOpen(true)}
+                  onBlur={() => setTimeout(() => setDestinationPincodeSuggestionsOpen(false), 150)}
                   required
                   placeholder={getDestinationFieldPlaceholder()}
+                  autoComplete="off"
                 />
+                {destinationPincodeSuggestionsOpen && (
+                  <div className="dropdown-list">
+                    <div className="dropdown-options">
+                      {loadingDestinationPincodeSuggestions ? (
+                        <div className="dropdown-option no-results">Loading suggestions...</div>
+                      ) : destinationPincodeSuggestions.length > 0 ? (
+                        destinationPincodeSuggestions.map((suggestion) => (
+                          <div
+                            key={suggestion}
+                            className={`dropdown-option ${formData.destinationPincode === suggestion ? 'selected' : ''}`}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, destinationPincode: suggestion }));
+                              setDestinationPincodeSuggestionsOpen(false);
+                            }}
+                          >
+                            {suggestion}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-option no-results">No pincode suggestions found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1586,7 +1824,7 @@ const handleExtractDestination = async () => {
               </button>
             </div>
             <div className="results-container">
-              {offersForCards.length > 0 && (
+              {/* {offersForCards.length > 0 && (
                 <div className="offers-section">
                   <h3>Available Offers</h3>
                   <div className="offers-list">
@@ -1646,21 +1884,27 @@ const handleExtractDestination = async () => {
                     })}
                   </div>
                 </div>
-              )}
+              )} */}
 
               <div className="services-table">
                 <h3>Available Services</h3>
                 <div className="table-container">
                   <table>
                     <thead>
-                      <tr>
-                        <th>Carrier</th>
-                        <th>Cost</th>
-                        <th>Delivery Time</th>
-                        <th>Estimated Delivery</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
+  <tr>
+    <th>Carrier</th>
+    <th>Service</th>
+    <th>Cost</th>
+    <th>Rate/Kg</th>
+    <th>Chargeable Weight</th>
+    {/* <th>Base Cost</th>
+    <th>Additional Charges</th> */}
+    <th>Delivery Time</th>
+    <th>Estimated Delivery</th>
+    <th>Currency</th>
+    <th>Action</th>
+  </tr>
+</thead>
                     <tbody>
                       {result.quotes && result.quotes.length > 0 ? (
                         result.quotes.map((quote, index) => {
@@ -1687,42 +1931,85 @@ const handleExtractDestination = async () => {
                           return (
                             <Fragment key={`${quote.carrier}-${index}`}>
                               <tr
-                                className={`quote-row ${expandedQuoteIndex === index ? 'expanded' : ''}`}
-                                onClick={() =>
-                                  setExpandedQuoteIndex((current) =>
-                                    current === index ? null : index
-                                  )
-                                }
-                              >
-                                <td className="carrier-name">
-                                  <div className="carrier-cell">
-                                    <span>{quote.carrier}</span>
-                                    <span className="quote-expand-indicator">
-                                      {expandedQuoteIndex === index ? 'Hide cost details' : 'View cost details'}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className={`cost ${matchingSatisfiedOffer ? 'cost--discounted' : ''}`}>
-                                  <div className="cost-cell">
-                                    <span>{formatQuoteAmount(totalCost, currency)}</span>
-                                    {matchingSatisfiedOffer && (
-                                      <span className="discount-pill">Discounted</span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td>{quote.estimatedDelivery}</td>
-                                <td className="delivery-date">{quote.estimatedDeliveryReadable}</td>
-                                <td onClick={(e) => e.stopPropagation()}>
-                                  <button 
-                                    className="btn-create-shipment"
-                                    onClick={() => handleCreateShipment(quote)}
-                                  >
-                                    Create Shipment
-                                  </button>
-                                </td>
-                              </tr>
+  className={`quote-row ${expandedQuoteIndex === index ? "expanded" : ""}`}
+  onClick={() =>
+    setExpandedQuoteIndex((current) =>
+      current === index ? null : index
+    )
+  }
+>
+  <td className="carrier-name">
+    <div className="carrier-cell">
+      <span>{quote.carrier}</span>
+      <span className="quote-expand-indicator">
+        {expandedQuoteIndex === index
+          ? "Hide Details"
+          : "View Details"}
+      </span>
+    </div>
+  </td>
 
-                              {showFedExOfferInfo && (
+  <td>{quote.serviceName || "-"}</td>
+
+
+  <td className={matchingSatisfiedOffer ? "cost cost--discounted" : "cost"}>
+    <div className="cost-cell">
+      <span>{formatQuoteAmount(totalCost, currency)}</span>
+      {matchingSatisfiedOffer && (
+        <span className="discount-pill">Discounted</span>
+      )}
+    </div>
+  </td>
+
+  <td>
+    {breakdown.ratePerKg != null
+      ? formatQuoteAmount(
+          hasDiscountedRatePerKg
+            ? discountedRatePerKg
+            : breakdown.ratePerKg,
+          currency
+        )
+      : "-"}
+  </td>
+
+  <td>
+    {breakdown.chargeableWeight ??
+      breakdown.weight ??
+      "-"}{" "}
+    kg
+  </td>
+
+  {/* <td>
+    {formatQuoteAmount(
+      breakdown.baseShippingCost || 0,
+      currency
+    )}
+  </td> */}
+
+  {/* <td>
+    {formatQuoteAmount(
+      breakdown.additionalCharges || 0,
+      currency
+    )}
+  </td> */}
+
+  <td>{quote.estimatedDelivery || "-"}</td>
+
+  <td>{quote.estimatedDeliveryReadable || "-"}</td>
+
+  <td>{currency}</td>
+
+  <td onClick={(e) => e.stopPropagation()}>
+    <button
+      className="btn-create-shipment"
+      onClick={() => handleCreateShipment(quote)}
+    >
+      Create Shipment
+    </button>
+  </td>
+</tr>
+
+                              {/* {showFedExOfferInfo && (
                                   <tr className="quote-offer-row">
                                     <td colSpan="5">
                                       <div className="quote-offer-note">
@@ -1738,7 +2025,7 @@ const handleExtractDestination = async () => {
                                       </div>
                                     </td>
                                   </tr>
-                                )}
+                                )} */}
                               {expandedQuoteIndex === index && (
                                 <tr className="quote-breakdown-row">
                                   <td colSpan="5">

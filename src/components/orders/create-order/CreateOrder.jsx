@@ -44,8 +44,118 @@ const COUNTRIES = [
   'EGYPT'
 ];
 
+const COUNTRY_CODE_MAP = {
+  UAE: 'ae',
+  GERMANY: 'de',
+  UK: 'gb',
+  USA: 'us',
+  INDIA: 'in',
+  CHINA: 'cn',
+  'SOUTH KOREA': 'kr',
+  FRANCE: 'fr',
+  AUSTRALIA: 'au',
+  CANADA: 'ca',
+  SAUDI: 'sa',
+  BAHRAIN: 'bh',
+  OMAN: 'om',
+  QATAR: 'qa',
+  EGYPT: 'eg',
+};
+
 // Countries that use city name instead of pincode
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
+
+const getCountryCode = (country = '') => {
+  const normalizedCountry = country.trim().toUpperCase();
+  return COUNTRY_CODE_MAP[normalizedCountry] || 'in';
+};
+
+const getSuggestionValue = (item) => {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return (
+    item?.name ||
+    item?.value ||
+    item?.label ||
+    item?.text ||
+    item?.city ||
+    item?.cityName ||
+    item?.pincode ||
+    item?.postalCode ||
+    item?.country ||
+    item?.countryName ||
+    item?.code ||
+    ''
+  );
+};
+
+const formatSuggestionLabel = (suggestion, fieldType = 'default') => {
+  if (typeof suggestion === 'string') {
+    return suggestion;
+  }
+
+  if (fieldType === 'pincode') {
+    const pincode = suggestion?.pincode || suggestion?.postalCode || suggestion?.value || suggestion?.code || '';
+    const city = suggestion?.city || suggestion?.cityName || suggestion?.name || suggestion?.label || '';
+    return [pincode, city].filter(Boolean).join(' - ');
+  }
+
+  return getSuggestionValue(suggestion);
+};
+
+const normalizeLocationSuggestions = (response, fallbackItems = [], fieldType = 'default') => {
+  const payload = response?.data ?? response;
+  const list = payload?.suggestions ?? payload?.results ?? payload?.items ?? payload;
+
+  if (Array.isArray(list)) {
+    return list
+      .map((item) => formatSuggestionLabel(item, fieldType))
+      .filter(Boolean)
+      .slice(0, 10);
+  }
+
+  return fallbackItems;
+};
+
+function SuggestionDropdown({ open, loading, suggestions, onSelect, emptyMessage }) {
+  if (!open) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="location-suggestions location-suggestions-status">
+        <span className="location-suggestion-meta">Loading suggestions...</span>
+      </div>
+    );
+  }
+
+  if (!suggestions.length) {
+    return emptyMessage ? (
+      <div className="location-suggestions location-suggestions-status">
+        <span className="location-suggestion-meta">{emptyMessage}</span>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div className="location-suggestions">
+      {suggestions.map((suggestion, index) => (
+        <button
+          key={`${suggestion}-${index}`}
+          type="button"
+          className="location-suggestion-item"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => onSelect(suggestion)}
+        >
+          <span className="location-suggestion-title">{suggestion}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const CURRENCY_SYMBOLS = {
   AED: 'د.إ',
@@ -248,6 +358,24 @@ function CreateOrder() {
   const [loadingDeliverySuggestions, setLoadingDeliverySuggestions] = useState(false);
   const [pickupSuggestionsOpen, setPickupSuggestionsOpen] = useState(false);
   const [deliverySuggestionsOpen, setDeliverySuggestionsOpen] = useState(false);
+  const [pickupCountrySuggestions, setPickupCountrySuggestions] = useState([]);
+  const [deliveryCountrySuggestions, setDeliveryCountrySuggestions] = useState([]);
+  const [pickupCitySuggestions, setPickupCitySuggestions] = useState([]);
+  const [deliveryCitySuggestions, setDeliveryCitySuggestions] = useState([]);
+  const [pickupPincodeSuggestions, setPickupPincodeSuggestions] = useState([]);
+  const [deliveryPincodeSuggestions, setDeliveryPincodeSuggestions] = useState([]);
+  const [loadingPickupCountrySuggestions, setLoadingPickupCountrySuggestions] = useState(false);
+  const [loadingDeliveryCountrySuggestions, setLoadingDeliveryCountrySuggestions] = useState(false);
+  const [loadingPickupCitySuggestions, setLoadingPickupCitySuggestions] = useState(false);
+  const [loadingDeliveryCitySuggestions, setLoadingDeliveryCitySuggestions] = useState(false);
+  const [loadingPickupPincodeSuggestions, setLoadingPickupPincodeSuggestions] = useState(false);
+  const [loadingDeliveryPincodeSuggestions, setLoadingDeliveryPincodeSuggestions] = useState(false);
+  const [pickupCountrySuggestionsOpen, setPickupCountrySuggestionsOpen] = useState(false);
+  const [deliveryCountrySuggestionsOpen, setDeliveryCountrySuggestionsOpen] = useState(false);
+  const [pickupCitySuggestionsOpen, setPickupCitySuggestionsOpen] = useState(false);
+  const [deliveryCitySuggestionsOpen, setDeliveryCitySuggestionsOpen] = useState(false);
+  const [pickupPincodeSuggestionsOpen, setPickupPincodeSuggestionsOpen] = useState(false);
+  const [deliveryPincodeSuggestionsOpen, setDeliveryPincodeSuggestionsOpen] = useState(false);
   const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
   const allOffers = rateResult?.offers || [];
   const satisfiedOffers = allOffers.filter(isOfferConditionSatisfied);
@@ -343,6 +471,178 @@ function CreateOrder() {
   }, [formData.deliveryCompanyName, deliverySuggestionsOpen]);
 
   useEffect(() => {
+    if (!pickupCountrySuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.pickupCountry.trim();
+    if (!query || query.length < 2) {
+      setPickupCountrySuggestions([]);
+      setLoadingPickupCountrySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupCountrySuggestions(true);
+        const response = await api.getCountrySuggestions(query, 10);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setPickupCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+      } catch (error) {
+        console.error('Pickup country suggestions error:', error);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setPickupCountrySuggestions(fallbackSuggestions);
+      } finally {
+        setLoadingPickupCountrySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupCountry, pickupCountrySuggestionsOpen]);
+
+  useEffect(() => {
+    if (!deliveryCountrySuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.deliveryCountry.trim();
+    if (!query || query.length < 2) {
+      setDeliveryCountrySuggestions([]);
+      setLoadingDeliveryCountrySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDeliveryCountrySuggestions(true);
+        const response = await api.getCountrySuggestions(query, 10);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setDeliveryCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+      } catch (error) {
+        console.error('Delivery country suggestions error:', error);
+        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
+        setDeliveryCountrySuggestions(fallbackSuggestions);
+      } finally {
+        setLoadingDeliveryCountrySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.deliveryCountry, deliveryCountrySuggestionsOpen]);
+
+  useEffect(() => {
+    if (!pickupCitySuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.pickupCity.trim();
+    if (!query || query.length < 2) {
+      setPickupCitySuggestions([]);
+      setLoadingPickupCitySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupCitySuggestions(true);
+        const response = await api.getCitySuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        setPickupCitySuggestions(normalizeLocationSuggestions(response));
+      } catch (error) {
+        console.error('Pickup city suggestions error:', error);
+        setPickupCitySuggestions([]);
+      } finally {
+        setLoadingPickupCitySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupCity, formData.pickupCountry, pickupCitySuggestionsOpen]);
+
+  useEffect(() => {
+    if (!deliveryCitySuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.deliveryCity.trim();
+    if (!query || query.length < 2) {
+      setDeliveryCitySuggestions([]);
+      setLoadingDeliveryCitySuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDeliveryCitySuggestions(true);
+        const response = await api.getCitySuggestions(query, getCountryCode(formData.deliveryCountry), 10);
+        setDeliveryCitySuggestions(normalizeLocationSuggestions(response));
+      } catch (error) {
+        console.error('Delivery city suggestions error:', error);
+        setDeliveryCitySuggestions([]);
+      } finally {
+        setLoadingDeliveryCitySuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.deliveryCity, formData.deliveryCountry, deliveryCitySuggestionsOpen]);
+
+  useEffect(() => {
+    if (!pickupPincodeSuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.pickupPincode.trim();
+    if (!query || query.length < 2) {
+      setPickupPincodeSuggestions([]);
+      setLoadingPickupPincodeSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPickupPincodeSuggestions(true);
+        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+      } catch (error) {
+        console.error('Pickup pincode suggestions error:', error);
+        setPickupPincodeSuggestions([]);
+      } finally {
+        setLoadingPickupPincodeSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
+
+  useEffect(() => {
+    if (!deliveryPincodeSuggestionsOpen) {
+      return;
+    }
+
+    const query = formData.deliveryPincode.trim();
+    if (!query || query.length < 2) {
+      setDeliveryPincodeSuggestions([]);
+      setLoadingDeliveryPincodeSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingDeliveryPincodeSuggestions(true);
+        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.deliveryCountry), 10);
+        setDeliveryPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+      } catch (error) {
+        console.error('Delivery pincode suggestions error:', error);
+        setDeliveryPincodeSuggestions([]);
+      } finally {
+        setLoadingDeliveryPincodeSuggestions(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.deliveryPincode, formData.deliveryCountry, deliveryPincodeSuggestionsOpen]);
+
+  useEffect(() => {
     const prefillOrder = location.state?.prefillOrder;
     if (!prefillOrder) return;
 
@@ -409,11 +709,54 @@ function CreateOrder() {
     if (name === 'deliveryCompanyName') {
       setDeliverySuggestionsOpen(true);
     }
+    if (name === 'pickupCountry') {
+      setPickupCountrySuggestionsOpen(true);
+    }
+    if (name === 'deliveryCountry') {
+      setDeliveryCountrySuggestionsOpen(true);
+    }
+    if (name === 'pickupCity') {
+      setPickupCitySuggestionsOpen(true);
+    }
+    if (name === 'deliveryCity') {
+      setDeliveryCitySuggestionsOpen(true);
+    }
+    if (name === 'pickupPincode') {
+      setPickupPincodeSuggestionsOpen(true);
+    }
+    if (name === 'deliveryPincode') {
+      setDeliveryPincodeSuggestionsOpen(true);
+    }
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
+      }));
+    }
+  };
+
+  const handleSelectSuggestion = (prefix, field, value) => {
+    const fieldName = `${prefix}${field}`;
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+
+    if (prefix === 'pickup') {
+      setPickupCountrySuggestionsOpen(false);
+      setPickupCitySuggestionsOpen(false);
+      setPickupPincodeSuggestionsOpen(false);
+    } else {
+      setDeliveryCountrySuggestionsOpen(false);
+      setDeliveryCitySuggestionsOpen(false);
+      setDeliveryPincodeSuggestionsOpen(false);
+    }
+
+    if (errors[fieldName]) {
+      setErrors(prev => ({
+        ...prev,
+        [fieldName]: '',
       }));
     }
   };
@@ -1146,28 +1489,49 @@ const handleExtractDeliveryAddress = async () => {
             )}
           </div>
 
-          <div className="form-group">
+          <div className="form-group location-suggestion-group">
             <label htmlFor={`${prefix}Country`}>
               Country <span className="required">*</span>
             </label>
-            <select
+            <input
+              type="text"
               id={`${prefix}Country`}
               name={`${prefix}Country`}
               value={formData[`${prefix}Country`]}
               onChange={handleChange}
+              onFocus={() => {
+                if (isPickupSection) {
+                  setPickupCountrySuggestionsOpen(true);
+                }
+                if (isDeliverySection) {
+                  setDeliveryCountrySuggestionsOpen(true);
+                }
+              }}
+              onBlur={() => {
+                if (isPickupSection) {
+                  setTimeout(() => setPickupCountrySuggestionsOpen(false), 150);
+                }
+                if (isDeliverySection) {
+                  setTimeout(() => setDeliveryCountrySuggestionsOpen(false), 150);
+                }
+              }}
+              placeholder="Type country"
               className={errors[`${prefix}Country`] ? 'error' : ''}
-            >
-              <option value="">Select Country</option>
-              {COUNTRIES.map(country => (
-                <option key={country} value={country}>{country}</option>
-              ))}
-            </select>
+              autoComplete="off"
+            />
+            <SuggestionDropdown
+              open={isPickupSection ? pickupCountrySuggestionsOpen : deliveryCountrySuggestionsOpen}
+              loading={isPickupSection ? loadingPickupCountrySuggestions : loadingDeliveryCountrySuggestions}
+              suggestions={isPickupSection ? pickupCountrySuggestions : deliveryCountrySuggestions}
+              onSelect={(value) => handleSelectSuggestion(prefix, 'Country', value)}
+              emptyMessage="No matching countries found"
+            />
             {errors[`${prefix}Country`] && (
               <span className="error-message">{errors[`${prefix}Country`]}</span>
             )}
           </div>
 
-          <div className="form-group">
+          <div className="form-group location-suggestion-group">
             <label htmlFor={`${prefix}Pincode`}>
               {useCityName ? 'City' : 'Pincode'} <span className="required">*</span>
             </label>
@@ -1177,8 +1541,32 @@ const handleExtractDeliveryAddress = async () => {
               name={`${prefix}Pincode`}
               value={formData[`${prefix}Pincode`]}
               onChange={handleChange}
+              onFocus={() => {
+                if (isPickupSection) {
+                  setPickupPincodeSuggestionsOpen(true);
+                }
+                if (isDeliverySection) {
+                  setDeliveryPincodeSuggestionsOpen(true);
+                }
+              }}
+              onBlur={() => {
+                if (isPickupSection) {
+                  setTimeout(() => setPickupPincodeSuggestionsOpen(false), 150);
+                }
+                if (isDeliverySection) {
+                  setTimeout(() => setDeliveryPincodeSuggestionsOpen(false), 150);
+                }
+              }}
               placeholder={useCityName ? 'Enter city' : 'Enter pincode'}
               className={errors[`${prefix}Pincode`] ? 'error' : ''}
+              autoComplete="off"
+            />
+            <SuggestionDropdown
+              open={isPickupSection ? pickupPincodeSuggestionsOpen : deliveryPincodeSuggestionsOpen}
+              loading={isPickupSection ? loadingPickupPincodeSuggestions : loadingDeliveryPincodeSuggestions}
+              suggestions={isPickupSection ? pickupPincodeSuggestions : deliveryPincodeSuggestions}
+              onSelect={(value) => handleSelectSuggestion(prefix, 'Pincode', value)}
+              emptyMessage="No matching locations found"
             />
             {errors[`${prefix}Pincode`] && (
               <span className="error-message">{errors[`${prefix}Pincode`]}</span>
@@ -1257,7 +1645,7 @@ const handleExtractDeliveryAddress = async () => {
             )}
           </div>
 
-          <div className="form-group">
+          <div className="form-group location-suggestion-group">
             <label htmlFor={`${prefix}City`}>
               City <span className="required">*</span>
             </label>
@@ -1267,8 +1655,32 @@ const handleExtractDeliveryAddress = async () => {
               name={`${prefix}City`}
               value={formData[`${prefix}City`]}
               onChange={handleChange}
+              onFocus={() => {
+                if (isPickupSection) {
+                  setPickupCitySuggestionsOpen(true);
+                }
+                if (isDeliverySection) {
+                  setDeliveryCitySuggestionsOpen(true);
+                }
+              }}
+              onBlur={() => {
+                if (isPickupSection) {
+                  setTimeout(() => setPickupCitySuggestionsOpen(false), 150);
+                }
+                if (isDeliverySection) {
+                  setTimeout(() => setDeliveryCitySuggestionsOpen(false), 150);
+                }
+              }}
               placeholder="Enter city"
               className={errors[`${prefix}City`] ? 'error' : ''}
+              autoComplete="off"
+            />
+            <SuggestionDropdown
+              open={isPickupSection ? pickupCitySuggestionsOpen : deliveryCitySuggestionsOpen}
+              loading={isPickupSection ? loadingPickupCitySuggestions : loadingDeliveryCitySuggestions}
+              suggestions={isPickupSection ? pickupCitySuggestions : deliveryCitySuggestions}
+              onSelect={(value) => handleSelectSuggestion(prefix, 'City', value)}
+              emptyMessage="No matching cities found"
             />
             {errors[`${prefix}City`] && (
               <span className="error-message">{errors[`${prefix}City`]}</span>

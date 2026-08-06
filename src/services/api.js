@@ -128,6 +128,13 @@ export const api = {
 
   // Calculate rate
   calculateRate: async (rateData) => {
+    return apiRequest('/api/shipping/quote/validated', {
+      method: 'POST',
+      body: JSON.stringify(rateData),
+    });
+  },
+  // Calculate rate
+  calculateRate1: async (rateData) => {
     return apiRequest('/api/shipping/quote', {
       method: 'POST',
       body: JSON.stringify(rateData),
@@ -208,6 +215,24 @@ export const api = {
 
   getBoxDetailByCode: async (code) => {
     return apiRequest(`/api/box-details/${encodeURIComponent(code)}`, {
+      method: 'GET',
+    });
+  },
+
+  getCountrySuggestions: async (text, limit = 10) => {
+    return apiRequest(`/api/locations/country-suggestions${buildQueryString({ text, limit })}`, {
+      method: 'GET',
+    });
+  },
+
+  getCitySuggestions: async (text, countrycode = 'in', limit = 10) => {
+    return apiRequest(`/api/locations/city-suggestions${buildQueryString({ text, countrycode, limit })}`, {
+      method: 'GET',
+    });
+  },
+
+  getPincodeSuggestions: async (text, countrycode = 'in', limit = 10) => {
+    return apiRequest(`/api/locations/pincode-suggestions${buildQueryString({ text, countrycode, limit })}`, {
       method: 'GET',
     });
   },
