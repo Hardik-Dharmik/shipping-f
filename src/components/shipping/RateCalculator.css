@@ -932,59 +932,22 @@
   }
 }
 
-/* AI Extractor */
-
-.ai-extractor {
-    margin-bottom: 24px;
-}
-
-.ai-preview {
-    margin-top: 12px;
-}
-
-.ai-preview img {
-    max-width: 300px;
-    max-height: 250px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    object-fit: contain;
-}
-
-.ai-hint {
-    display: block;
-    margin-top: 6px;
-    font-size: 13px;
-    color: #777;
-}
-
-.ai-prompt {
-    width: 100%;
-    min-height: 90px;
-    resize: vertical;
-}
-
-.ai-actions {
-    margin-top: 16px;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-extract {
-    background: #3498db;
-    color: #fff;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: 0.2s;
-}
-
-.btn-extract:hover:not(:disabled) {
-    background: #2980b9;
-}
-
-.btn-extract:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
+/* AI Extractor — aligned with Create Order's document cards */
+.ai-extractor-card { padding: 20px; border: 2px dashed #d6dbe8; border-radius: 10px; background: linear-gradient(135deg, #f8faff 0%, #f1f4ff 100%); position: relative; overflow: hidden; }
+.ai-extractor-card::before { content: ''; position: absolute; right: -60px; top: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(102, 126, 234, .18) 0%, rgba(102, 126, 234, 0) 70%); pointer-events: none; }
+.ai-extractor-title { position: relative; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 2px solid #4f63d8; color: #2c3e50; font-size: 20px; font-weight: 600; }
+.ai-extractor-grid { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.ai-extractor-field { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid #e1e6f5; border-radius: 12px; background: #fff; box-shadow: 0 4px 10px rgba(70, 84, 150, .08); }
+.ai-extractor-field label { color: #2b3a55; font-size: 15px; font-weight: 600; }
+.ai-file-input { width: 100%; box-sizing: border-box; padding: 12px; border: 2px dashed #b9c4e9; border-radius: 8px; background: #fff; color: #2c3e50; cursor: pointer; }
+.ai-file-input::file-selector-button { margin-right: 10px; padding: 7px 10px; border: 0; border-radius: 5px; background: #4f63d8; color: #fff; cursor: pointer; }
+.ai-preview { margin-top: 4px; }
+.ai-preview img { display: block; width: 100%; max-width: 350px; max-height: 250px; border: 1px solid #dce3f5; border-radius: 8px; object-fit: contain; }
+.ai-hint { display: block; color: #65728b; font-size: 13px; line-height: 1.45; }
+.ai-prompt { width: 100%; min-height: 110px; box-sizing: border-box; padding: 12px; border: 1px solid #d5dced; border-radius: 8px; font: inherit; resize: vertical; }
+.ai-prompt:focus { outline: none; border-color: #4f63d8; box-shadow: 0 0 0 3px rgba(79, 99, 216, .12); }
+.ai-actions { position: relative; margin-top: 16px; display: flex; justify-content: flex-start; }
+.btn-extract { padding: 11px 18px; border: 0; border-radius: 8px; background: #4f63d8; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: .2s; }
+.btn-extract:hover:not(:disabled) { background: #3e50be; }
+.btn-extract:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 700px) { .ai-extractor-grid { grid-template-columns: 1fr; } }

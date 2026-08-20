@@ -271,8 +271,14 @@
 }
 
 .sidebar-submenu.open {
-  max-height: 200px;
+  max-height: min(360px, calc(100vh - 220px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
+
+.sidebar-submenu.open::-webkit-scrollbar { width: 6px; }
+.sidebar-submenu.open::-webkit-scrollbar-thumb { background: rgba(236, 240, 241, 0.35); border-radius: 6px; }
 
 .sidebar-submenu-link {
   padding: 12px 20px 12px 50px;

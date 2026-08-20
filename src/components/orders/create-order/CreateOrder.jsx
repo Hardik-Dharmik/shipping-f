@@ -23,6 +23,8 @@ import {
   toPickupContactPayload,
 } from '../../../utils/savedContacts';
 import { toCreateOrderFormPrefill } from '../../../utils/orderActions';
+import { carrierWordLimitError } from '../../../utils/carrierLimits';
+import { isPickupAvailable } from '../../../utils/pickupActions';
 import './CreateOrder.css';
 import ImportantNotes from '../../shipping/ImportantNotes';
 
@@ -64,6 +66,13 @@ const COUNTRY_CODE_MAP = {
 
 // Countries that use city name instead of pincode
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
+const AVAILABLE_CARRIERS = ['DHL', 'FedEx', 'UPS'];
+const FEDEX_LITHIUM_OPTIONS = [
+  { value: 'metal_contained_in_equipment', label: 'Lithium metal contained in equipment', detail: 'UN3091, PI970' },
+  { value: 'metal_packed_with_equipment', label: 'Lithium metal packed with equipment', detail: 'UN3091, PI969' },
+  { value: 'ion_contained_in_equipment', label: 'Lithium-ion contained in equipment', detail: 'UN3481, PI967' },
+  { value: 'ion_packed_with_equipment', label: 'Lithium-ion packed with equipment', detail: 'UN3481, PI966' },
+];
 
 const getCountryCode = (country = '') => {
   const normalizedCountry = (country || '').trim().toUpperCase();
@@ -435,6 +444,15 @@ function CreateOrder() {
     code: '',
     url: '',
   });
+  const [addressLinkModalOpen, setAddressLinkModalOpen] = useState(false);
+  const [selectedCarrier, setSelectedCarrier] = useState('');
+  const [schedulePickup, setSchedulePickup] = useState(false);
+  const [pickupRequest, setPickupRequest] = useState({
+    pickupAddressMode: 'shipment',
+    alternatePickupAddress: '',
+    pickupDate: '', readyTime: '', closingTime: '', packageLocation: '', remarks: '',
+  });
+  const [fedexPackageOptions, setFedexPackageOptions] = useState({ lithiumBatteryOptions: [], accessibleDangerousGoods: false, inaccessibleDangerousGoods: false });
   const [savedPackageCode, setSavedPackageCode] = useState('');
   const [loadingSavedPackage, setLoadingSavedPackage] = useState(false);
   const [rateCalculatorCode, setRateCalculatorCode] = useState('');
@@ -466,6 +484,8 @@ function CreateOrder() {
   const [pickupPincodeSuggestionsOpen, setPickupPincodeSuggestionsOpen] = useState(false);
   const [deliveryPincodeSuggestionsOpen, setDeliveryPincodeSuggestionsOpen] = useState(false);
   const isUsingAddressForm = Boolean(addressFormIdFromQuery || selectedAddressFormId);
+  const isFedExSelected = selectedCarrier.toLowerCase() === 'fedex';
+  const pickupSchedulingAvailable = isPickupAvailable(selectedCarrier);
   const allOffers = rateResult?.offers || [];
   const satisfiedOffers = allOffers.filter(isOfferConditionSatisfied);
   const unsatisfiedOffers = allOffers.filter((offer) => !isOfferConditionSatisfied(offer));
@@ -990,23 +1010,62 @@ const handleExtractDeliveryAddress = async () => {
     setPackingListFiles((prev) => prev.filter((_, index) => index !== fileIndex));
   };
 
+  const buildAddressLinkOrder = () => {
+    const boxes = packages.map((pkg) => ({
+      quantity: 1,
+      actualWeight: Number(pkg.actualWeight),
+      length: Number(pkg.length),
+      breadth: Number(pkg.breadth),
+      height: Number(pkg.height),
+    }));
+    const actualWeight = boxes.reduce((sum, box) => sum + Math.max(box.actualWeight, (box.length * box.breadth * box.height) / 5000), 0);
+    const shipmentValue = calculateShipmentValue();
+    const insuranceCharge = compliance.insurance ? Math.max(45, shipmentValue * 0.02) : 0;
+    const selectedQuote = pendingQuoteSelection?.selectedQuote;
+    const carrierDetails = selectedCarrier || selectedQuote ? {
+      name: selectedCarrier || selectedQuote.carrier,
+      ...(selectedQuote ? { cost: selectedQuote.cost, currency: selectedQuote.currency, estimatedDelivery: selectedQuote.estimatedDelivery, estimatedDeliveryReadable: selectedQuote.estimatedDeliveryReadable } : {}),
+      ...(isFedExSelected ? { packageOptions: fedexPackageOptions } : {}),
+    } : null;
+    return {
+      actualWeight: Number(actualWeight.toFixed(2)),
+      boxes,
+      products: products.map((product) => syncInvoiceProduct({ ...product, invoiceValues: product.invoiceValues })),
+      packages: packages.map((pkg, index) => ({ id: pkg.id || index + 1, actualWeight: Number(pkg.actualWeight), length: Number(pkg.length), breadth: Number(pkg.breadth), height: Number(pkg.height) })),
+      compliance: { ...compliance, exportDeclarationCharge: compliance.exportDeclaration ? 120 : 0, insuranceCharge },
+      shipmentValue,
+      insurance: compliance.insurance,
+      otherCharges: 0,
+      orderMeta: { shipmentValueCurrency: getSelectedCurrency() || products[0]?.currency || 'AED' },
+      ...(carrierDetails ? { carrier: carrierDetails } : {}),
+    };
+  };
+
   const handleGenerateAddressFormLink = async () => {
+    if (!validateForm(false)) {
+      toast.error('Please complete the shipment details before generating an address link.');
+      return;
+    }
     try {
       setCreatingAddressFormLink(true);
-      const response = await api.createAddressForm();
-      const payload = extractAddressFormPayload(response);
-      const code = payload.code || '';
-      const generatedUrl =
-        response?.data?.publicUrl ||
-        response?.publicUrl ||
-        (code ? `${window.location.origin}/address-forms/${code}` : '');
+      const response = await api.createOrderAddressLink(buildAddressLinkOrder());
+      const apiPublicLink = response?.data?.public_link || response?.public_link || '';
 
-      if (!code) {
-        throw new Error('Address form code not returned by server.');
+      if (!apiPublicLink) {
+        throw new Error('Address link not returned by server.');
       }
 
+      // The API can be hosted separately from the React app (for example on
+      // localhost:3000 in development), so construct the share URL from the
+      // current frontend origin rather than sending recipients to the API.
+      const code = apiPublicLink.split('/').filter(Boolean).pop() || '';
+      if (!code) {
+        throw new Error('Address link code not returned by server.');
+      }
+      const generatedUrl = `${window.location.origin}/address-form/${encodeURIComponent(code)}`;
       setCreatedAddressForm({ code, url: generatedUrl });
-      toast.success('Shareable address form link created.');
+      setAddressLinkModalOpen(true);
+      toast.success('Link generated successfully.');
     } catch (error) {
       toast.error(error.message || 'Failed to create shareable link.');
     } finally {
@@ -1025,9 +1084,11 @@ const handleExtractDeliveryAddress = async () => {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (includeAddresses = true) => {
     const newErrors = {};
 
+    // Address information is collected through the public link when requested.
+    if (includeAddresses) {
     // Validate pickup fields
     if (!formData.pickupCompanyName.trim()) {
       newErrors.pickupCompanyName = 'Company name is required';
@@ -1103,6 +1164,7 @@ const handleExtractDeliveryAddress = async () => {
     if (formData.deliveryEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.deliveryEmail)) {
       newErrors.deliveryEmail = 'Please enter a valid email address';
     }
+    }
 
     // Validate product fields
     products.forEach((product) => {
@@ -1112,7 +1174,21 @@ const handleExtractDeliveryAddress = async () => {
       if (calculateInvoiceTotal(product.invoiceValues) <= 0) {
         newErrors[`product_${product.id}_unitPrice`] = 'Total invoice value must be greater than 0';
       }
+      const commodityError = carrierWordLimitError(selectedCarrier, 'commodity', product.name, 'Commodity name');
+      if (commodityError) newErrors[`product_${product.id}_name`] = commodityError;
     });
+
+    if (includeAddresses) {
+      const addressLimits = [
+        ['pickupFullName', 'contact', 'Contact person name'], ['deliveryFullName', 'contact', 'Contact person name'],
+        ['pickupCompanyName', 'company', 'Company name'], ['deliveryCompanyName', 'company', 'Company name'],
+        ['pickupCompleteAddress', 'address', 'Address'], ['deliveryCompleteAddress', 'address', 'Address'],
+      ];
+      addressLimits.forEach(([key, field, label]) => {
+        const limitError = carrierWordLimitError(selectedCarrier, field, formData[key], label);
+        if (limitError) newErrors[key] = limitError;
+      });
+    }
 
     // Validate package details
     packages.forEach((pkg) => {
@@ -1166,6 +1242,10 @@ const handleExtractDeliveryAddress = async () => {
     }
 
     const { selectedQuote, quoteIndex } = pendingQuoteSelection;
+    if (schedulePickup && isFedExSelected && (!pickupRequest.pickupDate || !pickupRequest.readyTime || !pickupRequest.closingTime || !pickupRequest.packageLocation || (pickupRequest.pickupAddressMode === 'alternate' && !pickupRequest.alternatePickupAddress.trim()))) {
+      toast.error('Please complete the pickup scheduling details.');
+      return;
+    }
     setCreatingQuoteIndex(quoteIndex);
 
     // Prepare boxes
@@ -1264,11 +1344,12 @@ const handleExtractDeliveryAddress = async () => {
       products: detailedProducts,
       packages: detailedPackages,
       carrier: {
-        name: selectedQuote.carrier,
+        name: selectedCarrier || selectedQuote.carrier,
         cost: selectedQuote.cost,
         currency: selectedQuote.currency,
         estimatedDelivery: selectedQuote.estimatedDelivery,
-        estimatedDeliveryReadable: selectedQuote.estimatedDeliveryReadable
+        estimatedDeliveryReadable: selectedQuote.estimatedDeliveryReadable,
+        ...(isFedExSelected ? { packageOptions: fedexPackageOptions } : {}),
       },
       compliance: {
         requireBOE: compliance.requireBOE,
@@ -1283,6 +1364,19 @@ const handleExtractDeliveryAddress = async () => {
       orderMeta: {
         shipmentValueCurrency: selectedCurrency,
       },
+      ...(schedulePickup && pickupSchedulingAvailable ? {
+        pickupRequest: {
+          carrier: selectedCarrier,
+          pickupDate: pickupRequest.pickupDate,
+          readyTime: pickupRequest.readyTime,
+          closingTime: pickupRequest.closingTime,
+          packageLocation: pickupRequest.packageLocation,
+          remarks: pickupRequest.remarks,
+          ...(pickupRequest.pickupAddressMode === 'alternate' ? {
+            alternatePickupAddress: pickupRequest.alternatePickupAddress,
+          } : {}),
+        },
+      } : {}),
       addressFormId: selectedAddressFormId || null,
     };
   
@@ -1398,6 +1492,7 @@ const handleExtractDeliveryAddress = async () => {
         temporaryExportForRepairAndReturn: compliance.temporaryExportForRepairAndReturn,
         insurance: compliance.insurance,
         insuranceCharge: compliance.insurance ? Math.max(45, shipmentValue * 0.02) : 0,
+        ...(selectedCarrier ? { carrier: { name: selectedCarrier, ...(isFedExSelected ? { packageOptions: fedexPackageOptions } : {}) } } : {}),
       };
 
       // Call rate calculation API
@@ -1450,6 +1545,10 @@ const handleExtractDeliveryAddress = async () => {
     setIsModalOpen(false);
     setPreCreateModalOpen(false);
     setPendingQuoteSelection(null);
+    setSelectedCarrier('');
+    setFedexPackageOptions({ lithiumBatteryOptions: [], accessibleDangerousGoods: false, inaccessibleDangerousGoods: false });
+    setSchedulePickup(false);
+    setPickupRequest({ pickupAddressMode: 'shipment', alternatePickupAddress: '', pickupDate: '', readyTime: '', closingTime: '', packageLocation: '', remarks: '' });
     if (showToast) {
       toast.info('Form reset successfully');
     }
@@ -2589,11 +2688,66 @@ const handleExtractDeliveryAddress = async () => {
           <p>Fill in the pickup and delivery details</p>
         </div>
 
+        <section className="carrier-selector" aria-labelledby="carrier-selector-title">
+          <div>
+            <h3 id="carrier-selector-title">Preferred carrier</h3>
+            <p>Select a carrier to include it in the rate request and saved order draft.</p>
+          </div>
+          <div className="carrier-selector-actions" role="group" aria-label="Carrier selection">
+            <button type="button" className={!selectedCarrier ? 'carrier-button selected' : 'carrier-button'} onClick={() => setSelectedCarrier('')}>Any carrier</button>
+            {AVAILABLE_CARRIERS.map((carrier) => <button key={carrier} type="button" className={selectedCarrier === carrier ? 'carrier-button selected' : 'carrier-button'} onClick={() => setSelectedCarrier(carrier)}>{carrier}</button>)}
+          </div>
+        </section>
+
+        {isFedExSelected && (
+          <section className="fedex-package-options" aria-labelledby="fedex-package-options-title">
+            <div className="fedex-package-options-heading">
+              <h3 id="fedex-package-options-title">FedEx package options</h3>
+              <p>Select all special handling options that apply to this shipment.</p>
+            </div>
+            <div className="fedex-options-grid">
+              <div className="fedex-option-card fedex-option-card--wide">
+                <h4>Lithium batteries</h4>
+                <p>Lithium-ion or lithium-metal cells/batteries prepared under the applicable packing instruction.</p>
+                <div className="fedex-lithium-list">
+                  {FEDEX_LITHIUM_OPTIONS.map((option) => <label key={option.value} className="fedex-check-option">
+                    <input type="checkbox" checked={fedexPackageOptions.lithiumBatteryOptions.includes(option.value)} onChange={(event) => setFedexPackageOptions((current) => ({ ...current, lithiumBatteryOptions: event.target.checked ? [...current.lithiumBatteryOptions, option.value] : current.lithiumBatteryOptions.filter((value) => value !== option.value) }))} />
+                    <span>{option.label} <small>({option.detail})</small></span>
+                  </label>)}
+                </div>
+              </div>
+              <label className="fedex-option-card fedex-toggle-card">
+                <input type="checkbox" checked={fedexPackageOptions.accessibleDangerousGoods} onChange={(event) => setFedexPackageOptions((current) => ({ ...current, accessibleDangerousGoods: event.target.checked }))} />
+                <span><strong>Accessible dangerous goods (ADG)</strong><small>For packages with commodities that must be accessible to the flight crew.</small></span>
+              </label>
+              <label className="fedex-option-card fedex-toggle-card">
+                <input type="checkbox" checked={fedexPackageOptions.inaccessibleDangerousGoods} onChange={(event) => setFedexPackageOptions((current) => ({ ...current, inaccessibleDangerousGoods: event.target.checked }))} />
+                <span><strong>Inaccessible dangerous goods (IDG)</strong><small>For packages with commodities not accessible to the flight crew.</small></span>
+              </label>
+            </div>
+          </section>
+        )}
+
+        {selectedCarrier && (
+          <section className="schedule-pickup-section">
+            <div className="schedule-pickup-heading"><div><h3>Schedule Pickup</h3><p>Carrier: <strong>{selectedCarrier}</strong></p></div><label className="schedule-pickup-toggle"><input type="checkbox" checked={schedulePickup} disabled={!isFedExSelected} onChange={(event) => setSchedulePickup(event.target.checked)} /> Enable scheduling</label></div>
+            {!isFedExSelected ? <p className="pickup-unavailable-message">Pickup scheduling is not available for this carrier yet.</p> : schedulePickup && <div className="schedule-pickup-grid">
+              <div className="pickup-address-choice">
+                <span>Pickup address</span>
+                <label><input type="radio" name="pickupAddressMode" checked={pickupRequest.pickupAddressMode === 'shipment'} onChange={() => setPickupRequest((current) => ({ ...current, pickupAddressMode: 'shipment' }))} /> Use shipment pickup address</label>
+                <label><input type="radio" name="pickupAddressMode" checked={pickupRequest.pickupAddressMode === 'alternate'} onChange={() => setPickupRequest((current) => ({ ...current, pickupAddressMode: 'alternate' }))} /> Use a different collection address</label>
+              </div>
+              {pickupRequest.pickupAddressMode === 'alternate' && <label className="pickup-address-input">Collection address<input type="text" value={pickupRequest.alternatePickupAddress} onChange={(event) => setPickupRequest((current) => ({ ...current, alternatePickupAddress: event.target.value }))} placeholder="Office 1204, Al Saqr Business Tower, Sheikh Zayed Road, Dubai" /><small>Enter the address where the carrier should collect the package.</small></label>}
+              {[['pickupDate','Pickup Date','date'],['readyTime','Ready Time','time'],['closingTime','Closing Time','time'],['packageLocation','Package Location','text'],['remarks','Remarks','text']].map(([key,label,type]) => <label key={key}>{label}{key !== 'remarks' && ' *'}<input type={type} value={pickupRequest[key]} onChange={(event) => setPickupRequest((current) => ({ ...current, [key]: event.target.value }))} /></label>)}
+            </div>}
+          </section>
+        )}
+
         {!isUsingAddressForm && (
           <div className="address-form-tools">
             <div className="address-form-tools-main">
-              <h3>Address Form Link</h3>
-              <p>Create a public link to collect pickup and destination address details.</p>
+              <h3>Create Order via Address Link</h3>
+              <p>Complete the shipment details below, then generate a secure link for pickup and destination addresses.</p>
               <div className="address-form-tools-actions">
                 <button
                   type="button"
@@ -2601,22 +2755,13 @@ const handleExtractDeliveryAddress = async () => {
                   onClick={handleGenerateAddressFormLink}
                   disabled={creatingAddressFormLink}
                 >
-                  {creatingAddressFormLink ? 'Generating Link...' : 'Generate Link'}
+                  {creatingAddressFormLink ? 'Generating Link...' : 'Generate Address Link'}
                 </button>
                 <Link to="/orders/address-forms" className="address-form-list-link">
                   Open Submitted Forms
                 </Link>
               </div>
             </div>
-            {createdAddressForm.code && (
-              <div className="address-form-tools-result">
-                <p><strong>Code:</strong> {createdAddressForm.code}</p>
-                <p className="address-form-link">{createdAddressForm.url}</p>
-                <button type="button" className="btn-copy-link" onClick={handleCopyAddressFormLink}>
-                  Copy Link
-                </button>
-              </div>
-            )}
             {loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
           </div>
         )}
@@ -2641,7 +2786,7 @@ const handleExtractDeliveryAddress = async () => {
         {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
         <form onSubmit={handleSubmit} className="create-order-form">
-          <div
+          <><div
     className="document-section"
     onPaste={handlePasteScreenshot}
     tabIndex={0}
@@ -2769,7 +2914,7 @@ const handleExtractDeliveryAddress = async () => {
       : "Extract Destination Address"}
   </button>
 </div>
-          {renderAddressSection('delivery', 'Delivery Address')}
+          {renderAddressSection('delivery', 'Delivery Address')}</>
           {renderProductSection()}
           {renderPackageSection()}
           {renderDocumentSection()}
@@ -2925,6 +3070,23 @@ const handleExtractDeliveryAddress = async () => {
           </div>
         </form>
 
+        {addressLinkModalOpen && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="address-link-title">
+            <div className="modal-content">
+              <div className="modal-header"><h2 id="address-link-title">Link generated successfully</h2><button className="modal-close" onClick={() => setAddressLinkModalOpen(false)} aria-label="Close">&times;</button></div>
+              <div className="modal-body">
+                <p>Share this secure link with the person providing the shipment addresses.</p>
+                <p className="address-form-link">{createdAddressForm.url}</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-copy-link" onClick={handleCopyAddressFormLink}>Copy Link</button>
+                <a className="app-modal-secondary-btn" href={`https://wa.me/?text=${encodeURIComponent(createdAddressForm.url)}`} target="_blank" rel="noreferrer">Share via WhatsApp</a>
+                <a className="app-modal-secondary-btn" href={`mailto:?subject=${encodeURIComponent('Shipment address form')}&body=${encodeURIComponent(createdAddressForm.url)}`}>Share via Email</a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Rate Calculation Results Modal */}
         {isModalOpen && rateResult && (
           <div className="app-modal-overlay" onClick={() => setIsModalOpen(false)}>
@@ -3012,6 +3174,7 @@ const handleExtractDeliveryAddress = async () => {
                             <thead>
                               <tr>
                                 <th>Carrier</th>
+                                <th>Service</th>
                                 <th>Cost</th>
                                 <th>Delivery Time</th>
                                 <th>Estimated Delivery</th>
@@ -3028,6 +3191,10 @@ const handleExtractDeliveryAddress = async () => {
                                 const exportCharge = Number(compliance.exportDeclarationCharge) || 0;
                                 const additionalCharge = Number(breakdown.additionalCharges) || 0;
                                 const complianceAndAdditionalTotal = additionalCharge;
+                                const fedexCharges = breakdown.fedexCharges || {};
+                                const fedexSurcharges = fedexCharges.surchargeDetails || breakdown.fedexSurcharges || [];
+                                const fedexSurchargeTotal = Number(fedexCharges.surchargesTotal) || fedexSurcharges.reduce((total, charge) => total + (Number(charge.amount) || 0), 0);
+                                const fedexInternalTotal = Number(breakdown.internalCharges?.total) || 0;
                                 const showFedExOfferInfo = isFedExCarrier(quote.carrier) && fedExRowOffers.length > 0;
                                 const matchingSatisfiedOffer = satisfiedOffers.find(
                                   (offer) => getOfferCarrierName(offer) === (quote.carrier || '').toLowerCase()
@@ -3053,6 +3220,7 @@ const handleExtractDeliveryAddress = async () => {
                                           </span>
                                         </div>
                                       </td>
+                                      <td>{quote.serviceName || quote.serviceType || '—'}</td>
                                       <td className={`cost ${matchingSatisfiedOffer ? 'cost--discounted' : ''}`}>
                                         <div className="cost-cell">
                                           <span>{formatQuoteAmount(quote.cost, currency)}</span>
@@ -3075,7 +3243,7 @@ const handleExtractDeliveryAddress = async () => {
                                     </tr>
                                     {showFedExOfferInfo && (
                                       <tr className="quote-offer-row">
-                                        <td colSpan="5">
+                                        <td colSpan="6">
                                           <div className="quote-offer-note">
                                             {fedExRowOffers.map((offer, offerIndex) => (
                                               <p key={offer.code || `${offer.title}-${offerIndex}`}>
@@ -3092,7 +3260,7 @@ const handleExtractDeliveryAddress = async () => {
                                     )}
                                     {expandedQuoteIndex === index && (
                                       <tr className="quote-breakdown-row">
-                                        <td colSpan="5">
+                                        <td colSpan="6">
                                           <div className="quote-breakdown-grid">
                                             <div>
                                               <span>Rate/kg:</span>
@@ -3109,17 +3277,17 @@ const handleExtractDeliveryAddress = async () => {
                                             </div>
                                             <div>
                                               <span>Base Shipping:</span>
-                                              <strong>{formatQuoteAmount(breakdown.baseShippingCost, currency)}</strong>
+                                              <strong>{formatQuoteAmount(fedexCharges.baseShippingCharge ?? breakdown.baseShippingCost, currency)}</strong>
                                             </div>
-                                            <div className="quote-breakdown-section">
-                                              <span>Compliance & Additional Charges:</span>
-                                              <strong>{formatQuoteAmount(complianceAndAdditionalTotal, currency)}</strong>
-                                            </div>
-                                            <div className="quote-breakdown-subline">
-                                              <span>
-                                                BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}
-                                              </span>
-                                            </div>
+                                            {isFedExCarrier(quote.carrier) ? <>
+                                              <div className="quote-breakdown-section"><span>FedEx Surcharges:</span><strong>{formatQuoteAmount(fedexSurchargeTotal, currency)}</strong></div>
+                                              {fedexSurcharges.map((charge, chargeIndex) => <div className="quote-breakdown-subline" key={`${charge.type || 'surcharge'}-${chargeIndex}`}><span>{charge.description || charge.type || 'FedEx surcharge'}{charge.level ? ` (${charge.level.toLowerCase()})` : ''}</span><strong>{formatQuoteAmount(charge.amount, currency)}</strong></div>)}
+                                              <div className="quote-breakdown-section"><span>Internal & compliance charges:</span><strong>{formatQuoteAmount(fedexInternalTotal, currency)}</strong></div>
+                                              <div className="quote-breakdown-subline"><span>BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}</span></div>
+                                            </> : <>
+                                              <div className="quote-breakdown-section"><span>Compliance & Additional Charges:</span><strong>{formatQuoteAmount(complianceAndAdditionalTotal, currency)}</strong></div>
+                                              <div className="quote-breakdown-subline"><span>BOE {formatQuoteAmount(boeCharge, currency)} + D/O {formatQuoteAmount(doCharge, currency)} + Export {formatQuoteAmount(exportCharge, currency)}</span></div>
+                                            </>}
                                             <div className="quote-breakdown-total">
                                               <span>Total Cost:</span>
                                               <strong>{formatQuoteAmount(breakdown.totalCost ?? quote.cost, currency)}</strong>

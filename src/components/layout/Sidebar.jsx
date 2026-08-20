@@ -15,7 +15,7 @@ function Sidebar() {
 
   // Auto-open orders menu if on orders page
   useEffect(() => {
-    if (location.pathname.startsWith('/orders') || location.pathname === '/contact-details') {
+    if (location.pathname.startsWith('/orders') || location.pathname.startsWith('/pickups') || location.pathname === '/contact-details') {
       setOrdersMenuOpen(true);
     }
   }, [location.pathname]);
@@ -67,7 +67,7 @@ function Sidebar() {
             </Link>
             <div className="sidebar-menu">
               <button
-                className={`sidebar-menu-toggle ${location.pathname.startsWith('/orders') || location.pathname === '/contact-details' ? 'active' : ''}`}
+                className={`sidebar-menu-toggle ${location.pathname.startsWith('/orders') || location.pathname.startsWith('/pickups') || location.pathname === '/contact-details' ? 'active' : ''}`}
                 onClick={() => !isCollapsed && setOrdersMenuOpen(!ordersMenuOpen)}
                 title={isCollapsed ? 'Orders' : ''}
               >
@@ -100,11 +100,17 @@ function Sidebar() {
                   >
                     <span>Create Order</span>
                   </Link>
-            <Link 
+                  <Link 
                     to="/orders/list" 
                     className={`sidebar-submenu-link ${location.pathname === '/orders/list' ? 'active' : ''}`}
                   >
                     <span>Order List</span>
+                  </Link>
+                  <Link to="/pickups/schedule" className={`sidebar-submenu-link ${location.pathname === '/pickups/schedule' ? 'active' : ''}`}>
+                    <span>Schedule Pickup</span>
+                  </Link>
+                  <Link to="/pickups" className={`sidebar-submenu-link ${location.pathname === '/pickups' ? 'active' : ''}`}>
+                    <span>Pickups</span>
                   </Link>
                   <Link
                     to="/orders/address-forms"

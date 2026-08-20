@@ -25,6 +25,7 @@ import AddressFormsList from './components/orders/address-form/list/AddressForms
 import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
 import ShipmentConfirmed from './components/orders/shipment-confirmed/ShipmentConfirmed';
 import ContactDetailsList from './components/contact-details/ContactDetailsList';
+import { SchedulePickup, MyPickups } from './components/pickups/Pickups';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -127,6 +128,7 @@ function AppRoutes() {
           </PublicRoute>
         } 
       />
+      <Route path="/address-form/:code" element={<AddressFormPublic />} />
       <Route path="/address-forms/:code" element={<AddressFormPublic />} />
       <Route
         path="/*"
@@ -172,6 +174,8 @@ function AppRoutes() {
                           </UserRoute>
                         } 
                       />
+                      <Route path="/pickups/schedule" element={<UserRoute><SchedulePickup /></UserRoute>} />
+                      <Route path="/pickups" element={<UserRoute><MyPickups /></UserRoute>} />
                       <Route
                         path="/orders/confirmed"
                         element={

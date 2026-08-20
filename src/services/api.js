@@ -64,7 +64,10 @@ async function apiRequest(endpoint, options = {}) {
           window.location.assign('/login');
         }
       }
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.data = data;
+      throw error;
     }
     
     return data;
@@ -150,10 +153,37 @@ export const api = {
   },
 
   // Address form links
-  createAddressForm: async () => {
-    return apiRequest('/api/address/address-forms', {
+  createOrderAddressLink: async (order) => {
+    return apiRequest('/api/address/address-forms/order-link', {
       method: 'POST',
+      body: JSON.stringify({ order }),
     });
+  },
+
+  getPickups: async (params = {}) => {
+    return apiRequest(`/api/shipping/pickups${buildQueryString(params)}`, { method: 'GET' });
+  },
+
+  getPickupOrderDetails: async (awbNumber) => {
+    return apiRequest(`/api/shipping/pickups/order-details/${encodeURIComponent(awbNumber)}`, { method: 'GET' });
+  },
+
+  createPickup: async (pickupData) => {
+    return apiRequest('/api/shipping/pickups', {
+      method: 'POST',
+      body: JSON.stringify(pickupData),
+    });
+  },
+
+  updatePickup: async (pickupId, pickupData) => {
+    return apiRequest(`/api/shipping/pickups/${encodeURIComponent(pickupId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(pickupData),
+    });
+  },
+
+  cancelPickup: async (pickupId) => {
+    return apiRequest(`/api/shipping/pickups/${encodeURIComponent(pickupId)}`, { method: 'DELETE' });
   },
 
   getPublicAddressForm: async (code) => {

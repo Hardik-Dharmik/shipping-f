@@ -281,22 +281,15 @@ function RateCalculator() {
     }
 
     const query = formData.pickupCountry.trim();
-    if (!query || query.length < 2) {
-      setPickupCountrySuggestions([]);
-      setLoadingPickupCountrySuggestions(false);
-      return;
-    }
 
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupCountrySuggestions(true);
         const response = await api.getCountrySuggestions(query, 10);
-        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
-        setPickupCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+        setPickupCountrySuggestions(normalizeLocationSuggestions(response, []));
       } catch (error) {
         console.error('Pickup country suggestions error:', error);
-        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
-        setPickupCountrySuggestions(fallbackSuggestions);
+        setPickupCountrySuggestions([]);
       } finally {
         setLoadingPickupCountrySuggestions(false);
       }
@@ -311,22 +304,15 @@ function RateCalculator() {
     }
 
     const query = formData.destinationCountry.trim();
-    if (!query || query.length < 2) {
-      setDestinationCountrySuggestions([]);
-      setLoadingDestinationCountrySuggestions(false);
-      return;
-    }
 
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDestinationCountrySuggestions(true);
         const response = await api.getCountrySuggestions(query, 10);
-        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
-        setDestinationCountrySuggestions(normalizeLocationSuggestions(response, fallbackSuggestions));
+        setDestinationCountrySuggestions(normalizeLocationSuggestions(response, []));
       } catch (error) {
         console.error('Destination country suggestions error:', error);
-        const fallbackSuggestions = COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase())).slice(0, 10);
-        setDestinationCountrySuggestions(fallbackSuggestions);
+        setDestinationCountrySuggestions([]);
       } finally {
         setLoadingDestinationCountrySuggestions(false);
       }
@@ -437,14 +423,6 @@ function RateCalculator() {
 
       return prev.filter((_, invoiceIndex) => invoiceIndex !== index);
     });
-  };
-
-  const filteredCountries = (query) => {
-    const fallbackCountries = !query
-      ? COUNTRIES
-      : COUNTRIES.filter((country) => country.toLowerCase().includes(query.toLowerCase()));
-
-    return fallbackCountries;
   };
 
   const requiresCityName = (country) => {
@@ -928,7 +906,7 @@ const handleDestinationPasteScreenshot = (e) => {
 
 const handleExtractPickup = async () => {
   if (!pickupExtractImage) {
-    toast.error("Upload pickup screenshot.");
+    toast.error("Upload or paste a pickup screenshot.");
     return;
   }
 
@@ -945,13 +923,13 @@ const handleExtractPickup = async () => {
 
     setFormData((prev) => ({
       ...prev,
-      pickupCountry: data.country || "",
-      pickupPincode: data.postalCode || data.city || ""
+      pickupCountry: data.country || data.countryName || "",
+      pickupPincode: data.postalCode || data.pincode || data.pinCode || data.city || ""
     }));
 
     toast.success("Pickup details extracted.");
   } catch (err) {
-    toast.error(err.message);
+    toast.error(err.message || "Pickup extraction failed.");
   } finally {
     setPickupExtracting(false);
   }
@@ -959,7 +937,7 @@ const handleExtractPickup = async () => {
 
 const handleExtractDestination = async () => {
   if (!destinationExtractImage) {
-    toast.error("Upload destination screenshot.");
+    toast.error("Upload or paste a destination screenshot.");
     return;
   }
 
@@ -976,13 +954,13 @@ const handleExtractDestination = async () => {
 
     setFormData((prev) => ({
       ...prev,
-      destinationCountry: data.country || "",
-      destinationPincode: data.postalCode || data.city || ""
+      destinationCountry: data.country || data.countryName || "",
+      destinationPincode: data.postalCode || data.pincode || data.pinCode || data.city || ""
     }));
 
     toast.success("Destination details extracted.");
   } catch (err) {
-    toast.error(err.message);
+    toast.error(err.message || "Destination extraction failed.");
   } finally {
     setDestinationExtracting(false);
   }
@@ -1006,21 +984,18 @@ const handleExtractDestination = async () => {
         <h1>Rate Calculator</h1>
         <form onSubmit={handleCalculate} className="calculator-form">
           <div className="form-section">
-            <div
-    className="form-section ai-extractor"
-    onPaste={handlePickupPasteScreenshot}
-    tabIndex={0}
->
-    <h2>AI Pickup Extractor</h2>
+            <div className="ai-extractor-card" onPaste={handlePickupPasteScreenshot} tabIndex={0}>
+    <h2 className="ai-extractor-title">AI Address Extractor</h2>
 
-    <div className="form-row">
-        <div className="form-group">
+    <div className="ai-extractor-grid">
+        <div className="ai-extractor-field">
             <label>Screenshot</label>
 
             <input
                 type="file"
                 accept="image/*"
                 onChange={handlePickupScreenshotUpload}
+                className="ai-file-input"
             />
 
             <span className="ai-hint">
@@ -1034,7 +1009,7 @@ const handleExtractDestination = async () => {
             )}
         </div>
 
-        <div className="form-group">
+        <div className="ai-extractor-field">
             <label>Prompt</label>
 
             <textarea
@@ -1082,8 +1057,10 @@ const handleExtractDestination = async () => {
                   {pickupDropdownOpen && (
                     <div className="dropdown-list">
                       <div className="dropdown-options">
-                        {(pickupCountrySuggestions.length > 0 ? pickupCountrySuggestions : filteredCountries(pickupSearchQuery)).length > 0 ? (
-                          (pickupCountrySuggestions.length > 0 ? pickupCountrySuggestions : filteredCountries(pickupSearchQuery)).map((country) => (
+                        {loadingPickupCountrySuggestions ? (
+                          <div className="dropdown-option no-results">Loading countries...</div>
+                        ) : pickupCountrySuggestions.length > 0 ? (
+                          pickupCountrySuggestions.map((country) => (
                             <div
                               key={country}
                               className={`dropdown-option ${formData.pickupCountry === country ? 'selected' : ''}`}
@@ -1143,6 +1120,50 @@ const handleExtractDestination = async () => {
           </div>
 
           <div className="form-section">
+            <div
+              className="ai-extractor-card"
+              onPaste={handleDestinationPasteScreenshot}
+              tabIndex={0}
+            >
+              <h2 className="ai-extractor-title">AI Destination Address Extractor</h2>
+              <div className="ai-extractor-grid">
+                <div className="ai-extractor-field">
+                  <label>Screenshot</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleDestinationScreenshotUpload}
+                    className="ai-file-input"
+                  />
+                  <span className="ai-hint">
+                    Upload or press <strong>Ctrl + V</strong> to paste a screenshot.
+                  </span>
+                  {destinationExtractPreview && (
+                    <div className="ai-preview">
+                      <img src={destinationExtractPreview} alt="Destination preview" />
+                    </div>
+                  )}
+                </div>
+                <div className="ai-extractor-field">
+                  <label>Prompt</label>
+                  <textarea
+                    className="ai-prompt"
+                    value={destinationExtractPrompt}
+                    onChange={(e) => setDestinationExtractPrompt(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="ai-actions">
+                <button
+                  type="button"
+                  className="btn btn-extract"
+                  onClick={handleExtractDestination}
+                  disabled={destinationExtracting}
+                >
+                  {destinationExtracting ? 'Extracting...' : 'Extract Destination'}
+                </button>
+              </div>
+            </div>
             <h2>Destination Details</h2>
             <div className="form-row">
               <div className="form-group">
@@ -1169,8 +1190,10 @@ const handleExtractDestination = async () => {
                   {destinationDropdownOpen && (
                     <div className="dropdown-list">
                       <div className="dropdown-options">
-                        {(destinationCountrySuggestions.length > 0 ? destinationCountrySuggestions : filteredCountries(destinationSearchQuery)).length > 0 ? (
-                          (destinationCountrySuggestions.length > 0 ? destinationCountrySuggestions : filteredCountries(destinationSearchQuery)).map((country) => (
+                        {loadingDestinationCountrySuggestions ? (
+                          <div className="dropdown-option no-results">Loading countries...</div>
+                        ) : destinationCountrySuggestions.length > 0 ? (
+                          destinationCountrySuggestions.map((country) => (
                             <div
                               key={country}
                               className={`dropdown-option ${formData.destinationCountry === country ? 'selected' : ''}`}
