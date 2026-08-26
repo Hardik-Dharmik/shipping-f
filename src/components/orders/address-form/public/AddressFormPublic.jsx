@@ -4,81 +4,26 @@ import { api } from '../../../../services/api';
 import { carrierWordLimitError } from '../../../../utils/carrierLimits';
 import './AddressFormPublic.css';
 
-const EMPTY_ADDRESS = { name: '', companyName: '', phone: '', email: '', addressLine1: '', addressLine2: '', city: '', state: '', country: '', pincode: '' };
-const FIELDS = [
-  ['name', 'Contact name', true], ['companyName', 'Company name', false], ['phone', 'Phone', true], ['email', 'Email', false],
-  ['addressLine1', 'Address line 1', true], ['addressLine2', 'Address line 2', false], ['city', 'City', true], ['state', 'State', true],
-  ['country', 'Country', true], ['pincode', 'Pincode', true],
-];
-const COUNTRY_CODES = { UAE: 'ae', GERMANY: 'de', UK: 'gb', USA: 'us', INDIA: 'in', CHINA: 'cn', 'SOUTH KOREA': 'kr', FRANCE: 'fr', AUSTRALIA: 'au', CANADA: 'ca', SAUDI: 'sa', BAHRAIN: 'bh', OMAN: 'om', QATAR: 'qa', EGYPT: 'eg' };
-const countryCode = (country) => COUNTRY_CODES[String(country || '').trim().toUpperCase()] || String(country || '').trim().slice(0, 2).toLowerCase() || 'in';
+const blank = { companyName: '', contactName: '', phone: '', email: '', streetLine1: '', streetLine2: '', city: '', state: '', country: '', pincode: '' };
+const fields = [['contactName', 'Contact name', true], ['companyName', 'Company name', false], ['phone', 'Phone', true], ['email', 'Email', false], ['streetLine1', 'Address line 1', true], ['streetLine2', 'Address line 2', false], ['city', 'City', true], ['state', 'State', true], ['country', 'Country', true], ['pincode', 'Pincode', true]];
+const read = (obj, ...keys) => keys.map((key) => obj?.[key]).find((item) => item !== undefined && item !== null) || '';
+const addressFrom = (data = {}) => ({ companyName: read(data, 'companyName', 'company_name'), contactName: read(data, 'contactName', 'name', 'fullName'), phone: read(data, 'phone', 'mobileNo'), email: read(data, 'email'), streetLine1: read(data, 'streetLine1', 'addressLine1', 'completeAddress'), streetLine2: read(data, 'streetLine2', 'addressLine2', 'landmark'), city: read(data, 'city'), state: read(data, 'state', 'province'), country: read(data, 'country', 'countryCode'), pincode: read(data, 'pincode', 'postalCode') });
+const errorMessage = (error) => { const message = error?.message || 'This address link is unavailable.'; if (/expired/i.test(message)) return 'This address link has expired.'; if (/submitted|used/i.test(message)) return 'This address link has already been submitted.'; return message; };
 
-const responseMessage = (error) => {
-  const message = error?.message || 'This address link is unavailable.';
-  if (/expired/i.test(message)) return 'This address link has expired.';
-  if (/submitted|used/i.test(message)) return 'This address link has already been submitted.';
-  if (/invalid|not found/i.test(message)) return 'This address link is invalid.';
-  return message;
-};
-
-function AddressSection({ title, address, errors, onChange, disabled }) {
-  const [suggestions, setSuggestions] = useState({ country: [], city: [], pincode: [] });
-  const [open, setOpen] = useState({ country: false, city: false, pincode: false });
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      const query = address.country.trim();
-      if (query.length < 2) return setSuggestions((value) => ({ ...value, country: [] }));
-      try { const response = await api.getCountrySuggestions(query); setSuggestions((value) => ({ ...value, country: response?.data || response?.countries || response || [] })); } catch { setSuggestions((value) => ({ ...value, country: [] })); }
-    }, 250); return () => clearTimeout(timer);
-  }, [address.country]);
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      const query = address.city.trim();
-      if (query.length < 2) return setSuggestions((value) => ({ ...value, city: [] }));
-      try { const response = await api.getCitySuggestions(query, countryCode(address.country)); setSuggestions((value) => ({ ...value, city: response?.data || response?.cities || response || [] })); } catch { setSuggestions((value) => ({ ...value, city: [] })); }
-    }, 250); return () => clearTimeout(timer);
-  }, [address.city, address.country]);
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      const query = address.pincode.trim();
-      if (query.length < 2) return setSuggestions((value) => ({ ...value, pincode: [] }));
-      try { const response = await api.getPincodeSuggestions(query, countryCode(address.country)); setSuggestions((value) => ({ ...value, pincode: response?.data || response?.pincodes || response || [] })); } catch { setSuggestions((value) => ({ ...value, pincode: [] })); }
-    }, 250); return () => clearTimeout(timer);
-  }, [address.pincode, address.country]);
-  const labelFor = (item, type) => typeof item === 'string' ? item : item?.name || item?.label || item?.[type] || item?.city || item?.pincode || item?.postalCode || item?.country || '';
-  const locationInput = (key, label, required) => <div className="public-form-group public-location-field" key={key}>
-    <label htmlFor={`${title}-${key}`}>{label}{required && <span className="required"> *</span>}</label>
-    <input id={`${title}-${key}`} value={address[key]} disabled={disabled} autoComplete="off" onFocus={() => setOpen((value) => ({ ...value, [key]: true }))} onChange={(e) => { onChange(key, e.target.value); setOpen((value) => ({ ...value, [key]: true })); }} className={errors[key] ? 'error' : ''} />
-    {open[key] && suggestions[key].length > 0 && <div className="public-suggestions">{suggestions[key].map((item, index) => { const labelValue = labelFor(item, key); return <button type="button" key={`${labelValue}-${index}`} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(key, labelValue); setOpen((value) => ({ ...value, [key]: false })); }}>{labelValue}</button>; })}</div>}
-    {errors[key] && <span className="public-error-message">{errors[key]}</span>}
-  </div>;
-  return <section className="public-address-section"><h2>{title}</h2><div className="public-address-grid">
-    {FIELDS.map(([key, label, required]) => ['country', 'city', 'pincode'].includes(key) ? locationInput(key, label, required) : <div className={key.startsWith('address') ? 'public-form-group public-form-group-wide' : 'public-form-group'} key={key}>
-      <label htmlFor={`${title}-${key}`}>{label}{required && <span className="required"> *</span>}</label>
-      <input id={`${title}-${key}`} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={address[key]} disabled={disabled} onChange={(e) => onChange(key, e.target.value)} className={errors[key] ? 'error' : ''} />
-      {errors[key] && <span className="public-error-message">{errors[key]}</span>}
-    </div>)}
-  </div></section>;
+function AddressSection({ title, address, errors, disabled, onChange }) {
+  return <section className="public-address-section"><div className="public-section-header"><div><h2>{title}</h2><p className="public-section-subtitle">Country and pincode were locked when this link was created.</p></div></div><div className="public-address-grid">{fields.map(([key, label, required]) => <div className={key.startsWith('street') ? 'public-form-group public-form-group-wide' : 'public-form-group'} key={key}><label>{label}{required && <span className="required"> *</span>}</label><input type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={address[key]} readOnly={key === 'country' || key === 'pincode'} disabled={disabled} onChange={(event) => onChange(key, event.target.value)} className={errors[key] ? 'error' : ''} />{(key === 'country' || key === 'pincode') && <span className="public-field-note">Locked route field</span>}{errors[key] && <span className="public-error-message">{errors[key]}</span>}</div>)}</div></section>;
 }
 
 export default function AddressFormPublic() {
   const { code = '' } = useParams();
-  const [loading, setLoading] = useState(true); const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(''); const [submitted, setSubmitted] = useState(false); const [awb, setAwb] = useState('');
-  const [pickupAddress, setPickupAddress] = useState(EMPTY_ADDRESS); const [destinationAddress, setDestinationAddress] = useState(EMPTY_ADDRESS);
-  const [errors, setErrors] = useState({ pickup: {}, destination: {} });
-  const [carrier, setCarrier] = useState('');
-
-  useEffect(() => { let active = true; (async () => { try { const response = await api.getPublicAddressForm(code); const data = response?.data || response || {}; const status = String(data.status || ''); if (/expired|invalid/i.test(status)) throw new Error(status); if (!active) return; const alreadySubmitted = Boolean(data.submitted || data.isSubmitted || /submitted|used/i.test(status)); setSubmitted(alreadySubmitted); setAwb(data.awb_number || data.awbNumber || ''); setCarrier(data.carrier?.name || data.order?.carrier?.name || ''); } catch (err) { if (active) setError(responseMessage(err)); } finally { if (active) setLoading(false); } })(); return () => { active = false; }; }, [code]);
-
-  const update = (type, key, value) => { const setter = type === 'pickup' ? setPickupAddress : setDestinationAddress; setter((current) => ({ ...current, [key]: value })); setErrors((current) => ({ ...current, [type]: { ...current[type], [key]: '' } })); };
-  const validate = (address) => { const next = {}; FIELDS.filter(([, , required]) => required).forEach(([key, label]) => { if (!address[key].trim()) next[key] = `${label} is required`; }); if (address.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) next.email = 'Enter a valid email address'; if (address.phone && !/^[+\d][\d\s-]{7,}$/.test(address.phone)) next.phone = 'Enter a valid phone number'; [['name', 'contact', 'Contact person name'], ['companyName', 'company', 'Company name'], ['addressLine1', 'address', 'Address line 1'], ['addressLine2', 'address', 'Address line 2']].forEach(([key, type, label]) => { const limitError = carrierWordLimitError(carrier, type, address[key], label); if (limitError) next[key] = limitError; }); return next; };
-  const submit = async (event) => { event.preventDefault(); if (submitted) return; const pickup = validate(pickupAddress); const destination = validate(destinationAddress); setErrors({ pickup, destination }); if (Object.keys(pickup).length || Object.keys(destination).length) return; try { setSubmitting(true); const response = await api.submitPublicAddressForm(code, { pickupAddress, destinationAddress }); const data = response?.data || response || {}; setAwb(data.awb_number || data.awbNumber || ''); setSubmitted(true); } catch (err) { setError(responseMessage(err)); } finally { setSubmitting(false); } };
-  const copyAwb = async () => { try { await navigator.clipboard.writeText(awb); } catch { /* browser may block clipboard access */ } };
-
+  const [loading, setLoading] = useState(true), [submitting, setSubmitting] = useState(false), [error, setError] = useState(''), [submitted, setSubmitted] = useState(false), [awb, setAwb] = useState(''), [carrier, setCarrier] = useState('');
+  const [pickupAddress, setPickupAddress] = useState(blank), [destinationAddress, setDestinationAddress] = useState(blank), [pickupRequest, setPickupRequest] = useState({ pickupDate: '', readyTime: '', latestPickupTime: '' }), [errors, setErrors] = useState({ pickup: {}, destination: {}, pickupRequest: {} });
+  useEffect(() => { let live = true; api.getPublicAddressForm(code).then((response) => { const data = response?.data || response || {}; const order = data.order || data.orderDetails || data.order_details || data; const locked = data.locked_addresses || data.lockedAddresses || {}; const pickupSource = data.pickupAddress || data.pickup || order.pickupAddress || order.pickup || {}; const destinationSource = data.destinationAddress || data.destination || order.destinationAddress || order.destination || {}; const pickupLocked = locked.pickup || {}; const destinationLocked = locked.destination || {}; const pickup = { ...addressFrom(pickupSource), country: read(pickupSource, 'country', 'countryCode') || read(pickupLocked, 'country', 'countryCode') || read(data, 'pickupCountry', 'pickup_country') || read(order, 'pickupCountry', 'pickup_country'), pincode: read(pickupSource, 'pincode', 'postalCode') || read(pickupLocked, 'pincode', 'postalCode') || read(data, 'pickupPincode', 'pickup_pincode') || read(order, 'pickupPincode', 'pickup_pincode') }; const destination = { ...addressFrom(destinationSource), country: read(destinationSource, 'country', 'countryCode') || read(destinationLocked, 'country', 'countryCode') || read(data, 'destinationCountry', 'destination_country') || read(order, 'destinationCountry', 'destination_country'), pincode: read(destinationSource, 'pincode', 'postalCode') || read(destinationLocked, 'pincode', 'postalCode') || read(data, 'destinationPincode', 'destination_pincode') || read(order, 'destinationPincode', 'destination_pincode') }; const schedule = data.pickupRequest || data.pickupDetails || data.pickup_details || order.pickupRequest || order.pickupDetails || order.pickup_details || {}; if (!live) return; setPickupAddress(pickup); setDestinationAddress(destination); setPickupRequest({ pickupDate: read(schedule, 'pickupDate', 'pickup_date', 'date'), readyTime: read(schedule, 'readyTime', 'ready_time'), latestPickupTime: read(schedule, 'latestPickupTime', 'latest_pickup_time') }); setCarrier(read(data.carrier, 'name', 'carrier') || read(data.service, 'carrier') || read(order.carrier, 'carrier', 'name')); setSubmitted(Boolean(data.submitted || data.isSubmitted || data.is_submitted || /submitted|used/i.test(String(data.status || '')))); setAwb(read(data, 'awb_number', 'awbNumber')); }).catch((err) => live && setError(errorMessage(err))).finally(() => live && setLoading(false)); return () => { live = false; }; }, [code]);
+  const updateAddress = (type, key, text) => { (type === 'pickup' ? setPickupAddress : setDestinationAddress)((current) => ({ ...current, [key]: text })); setErrors((current) => ({ ...current, [type]: { ...current[type], [key]: '' } })); };
+  const validate = (address) => { const next = {}; fields.filter(([, , required]) => required).forEach(([key, label]) => { if (!String(address[key]).trim()) next[key] = `${label} is required`; }); if (address.email && !/^\S+@\S+\.\S+$/.test(address.email)) next.email = 'Enter a valid email address'; if (address.phone && !/^[+\d][\d\s-]{7,}$/.test(address.phone)) next.phone = 'Enter a valid phone number'; [['contactName', 'contact', 'Contact name'], ['companyName', 'company', 'Company name'], ['streetLine1', 'address', 'Address line 1'], ['streetLine2', 'address', 'Address line 2']].forEach(([key, kind, label]) => { const issue = carrierWordLimitError(carrier, kind, address[key], label); if (issue) next[key] = issue; }); return next; };
+  const submit = async (event) => { event.preventDefault(); const pickup = validate(pickupAddress), destination = validate(destinationAddress), scheduling = {}; if (pickupRequest.pickupDate && (!pickupRequest.readyTime || !pickupRequest.latestPickupTime)) scheduling.pickupDate = 'Enter both pickup times when selecting a pickup date.'; setErrors({ pickup, destination, pickupRequest: scheduling }); if (Object.keys(pickup).length || Object.keys(destination).length || Object.keys(scheduling).length) return; try { setSubmitting(true); const response = await api.submitPublicAddressForm(code, { pickupAddress, destinationAddress, pickupRequest }); const data = response?.data || response || {}; setAwb(read(data, 'awb_number', 'awbNumber')); setSubmitted(true); } catch (err) { setError(errorMessage(err)); } finally { setSubmitting(false); } };
   if (loading) return <main className="public-form-page"><div className="public-form-card"><p>Loading address form…</p></div></main>;
   if (error) return <main className="public-form-page"><div className="public-form-card"><h1>Address form</h1><p className="public-form-error">{error}</p></div></main>;
-  if (submitted) return <main className="public-form-page"><div className="public-form-card public-confirmation"><h1>Order created successfully</h1>{awb && <><p>AWB Number: <strong>{awb}</strong></p><button className="public-submit-btn" onClick={copyAwb}>Copy AWB</button></>} {!awb && <p>This address link has already been submitted.</p>}</div></main>;
-  return <main className="public-form-page"><div className="public-form-card"><h1>Shipment address details</h1><p className="public-form-subtitle">Enter pickup and destination contact details to create the order.{carrier && ` Carrier: ${carrier}.`}</p><form className="public-form" onSubmit={submit}><AddressSection title="Pickup / source" address={pickupAddress} errors={errors.pickup} disabled={submitting} onChange={(key, value) => update('pickup', key, value)} /><AddressSection title="Destination" address={destinationAddress} errors={errors.destination} disabled={submitting} onChange={(key, value) => update('destination', key, value)} /><button className="public-submit-btn" disabled={submitting}>{submitting ? 'Creating order…' : 'Submit address details'}</button></form></div></main>;
+  if (submitted) return <main className="public-form-page"><div className="public-form-card public-confirmation"><h1>Order created successfully</h1>{awb ? <p>AWB Number: <strong>{awb}</strong></p> : <p>This address link has already been submitted.</p>}</div></main>;
+  return <main className="public-form-page"><div className="public-form-card"><h1>Shipment address details</h1><p className="public-form-subtitle">Complete the editable addresses and pickup schedule. {carrier && `Service: ${carrier}.`}</p><form className="public-form" onSubmit={submit}><AddressSection title="Pickup address" address={pickupAddress} errors={errors.pickup} disabled={submitting} onChange={(key, text) => updateAddress('pickup', key, text)} /><AddressSection title="Destination address" address={destinationAddress} errors={errors.destination} disabled={submitting} onChange={(key, text) => updateAddress('destination', key, text)} /><section className="public-address-section"><h2>Pickup scheduling</h2><div className="public-address-grid">{[['pickupDate', 'Pickup date', 'date'], ['readyTime', 'Ready time', 'time'], ['latestPickupTime', 'Latest pickup time', 'time']].map(([key, label, type]) => <div className="public-form-group" key={key}><label>{label}</label><input type={type} value={pickupRequest[key]} disabled={submitting} onChange={(event) => setPickupRequest((current) => ({ ...current, [key]: event.target.value }))} /></div>)}</div>{errors.pickupRequest.pickupDate && <span className="public-error-message">{errors.pickupRequest.pickupDate}</span>}</section><button className="public-submit-btn" disabled={submitting}>{submitting ? 'Creating order…' : 'Submit and create order'}</button></form></div></main>;
 }

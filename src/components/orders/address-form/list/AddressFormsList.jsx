@@ -13,7 +13,7 @@ function AddressFormsList() {
             <h1>Address Forms</h1>
             <p>Submitted pickup and destination data from shared links.</p>
           </div>
-          <Link to="/orders/create" className="address-forms-create-link">Create Link</Link>
+          <Link to="/orders/address-forms/create" className="address-forms-create-link">Create Link</Link>
         </div>
 
         <AddressFormsTable fetchForms={api.getAddressForms} />

@@ -119,6 +119,12 @@ function Sidebar() {
                     <span>Address Forms</span>
                   </Link>
                   <Link
+                    to="/orders/address-forms/create"
+                    className={`sidebar-submenu-link ${location.pathname === '/orders/address-forms/create' ? 'active' : ''}`}
+                  >
+                    <span>Create Address Link</span>
+                  </Link>
+                  <Link
                     to="/contact-details"
                     className={`sidebar-submenu-link ${location.pathname === '/contact-details' ? 'active' : ''}`}
                   >

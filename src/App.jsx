@@ -23,6 +23,7 @@ import Orders from './components/orders/order-list/Orders';
 import CreateOrder from './components/orders/create-order/CreateOrder';
 import AddressFormsList from './components/orders/address-form/list/AddressFormsList';
 import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
+import CreateAddressFormLink from './components/orders/address-form/create/CreateAddressFormLink';
 import ShipmentConfirmed from './components/orders/shipment-confirmed/ShipmentConfirmed';
 import ContactDetailsList from './components/contact-details/ContactDetailsList';
 import { SchedulePickup, MyPickups } from './components/pickups/Pickups';
@@ -211,6 +212,10 @@ function AppRoutes() {
                       <Route
                         path="/billing"
                         element={<Billing />}
+                      />
+                      <Route
+                        path="/orders/address-forms/create"
+                        element={<UserRoute><CreateAddressFormLink /></UserRoute>}
                       />
                       <Route
                         path="/contact-details"

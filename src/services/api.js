@@ -153,6 +153,10 @@ export const api = {
   },
 
   // Address form links
+  getAddressFormServices: async () => {
+    return apiRequest('/api/address/address-forms/services', { method: 'GET' });
+  },
+
   createOrderAddressLink: async (order) => {
     return apiRequest('/api/address/address-forms/order-link', {
       method: 'POST',

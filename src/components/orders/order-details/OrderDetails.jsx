@@ -67,6 +67,11 @@ function OrderDetails() {
   const shipmentValue = data.shipmentValue || {};
   const boxes = data.boxes || [];
   const compliance = data.compliance || {};
+  const pickupRequest = data.pickupRequest || data.pickup_details || data.pickupDetails || {};
+  const carrierPickup = data.fedex_pickup || data.carrierPickup || {};
+  const carrier = order?.carrier || data.carrier || {};
+  const costBreakdown = carrier.costBreakdown || data.carrier?.costBreakdown || {};
+  const costCurrency = costBreakdown.currency || carrier.currency || '';
 
   const invoiceUrls = useMemo(() => {
     const fromOrder = order?.invoice_urls || [];
@@ -201,6 +206,56 @@ function OrderDetails() {
                 {weight.chargeable ?? '-'} {weight.unit || ''}
               </span>
             </div>
+          </div>
+
+          <div className="details-card">
+            <h3>Pickup Details</h3>
+            <div className="details-row">
+              <span>Pickup Date</span>
+              <span className="value">{pickupRequest.pickupDate || pickupRequest.pickup_date || '-'}</span>
+            </div>
+            <div className="details-row">
+              <span>Ready Time</span>
+              <span className="value">{pickupRequest.readyTime || pickupRequest.ready_time || '-'}</span>
+            </div>
+            <div className="details-row">
+              <span>Latest Pickup Time</span>
+              <span className="value">{pickupRequest.latestPickupTime || pickupRequest.latest_pickup_time || '-'}</span>
+            </div>
+            {carrierPickup.status && (
+              <div className="details-row">
+                <span>Pickup Status</span>
+                <span className="value">{carrierPickup.status}</span>
+              </div>
+            )}
+            {carrierPickup.confirmationCode && (
+              <div className="details-row">
+                <span>Confirmation Code</span>
+                <span className="value">{carrierPickup.confirmationCode}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="details-card">
+            <h3>Carrier Cost Breakdown</h3>
+            <div className="details-row">
+              <span>Base Shipping Cost</span>
+              <span className="value">{costBreakdown.baseShippingCost !== undefined ? `${formatCurrency(costBreakdown.baseShippingCost)} ${costCurrency}` : '-'}</span>
+            </div>
+            <div className="details-row">
+              <span>Additional Charges</span>
+              <span className="value">{costBreakdown.additionalCharges !== undefined ? `${formatCurrency(costBreakdown.additionalCharges)} ${costCurrency}` : '-'}</span>
+            </div>
+            <div className="details-row">
+              <span>Total Cost</span>
+              <span className="value">{costBreakdown.totalCost !== undefined ? `${formatCurrency(costBreakdown.totalCost)} ${costCurrency}` : '-'}</span>
+            </div>
+            {costBreakdown.weight !== undefined && (
+              <div className="details-row">
+                <span>Rated Weight</span>
+                <span className="value">{costBreakdown.weight} kg</span>
+              </div>
+            )}
           </div>
 
           <div className="details-card">
