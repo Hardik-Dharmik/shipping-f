@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { api } from '../../../services/api';
 import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { formatCurrency } from '../../../utils/currency';
+import CustomerSelect from '../../customers/CustomerSelect';
 import { toCreateOrderPrefill, extractAddressFormPayload } from '../../../utils/addressForms';
 import { calculateInvoiceTotal, syncInvoiceProduct } from '../../../utils/invoiceValues';
 import {
@@ -391,6 +392,7 @@ function CreateOrder() {
   const [searchParams, setSearchParams] = useSearchParams();
   const addressFormIdFromQuery = searchParams.get('addressFormId');
 
+  const [customer, setCustomer] = useState(null);
   const [formData, setFormData] = useState(INITIAL_ORDER_FORM_DATA);
 
   const [extractPrompt, setExtractPrompt] = useState(
@@ -757,6 +759,7 @@ function CreateOrder() {
 
     const prefill = toCreateOrderFormPrefill(prefillOrder);
     setSelectedAddressFormId('');
+    setCustomer(prefillOrder.customer || (prefillOrder.customer_id ? { id: String(prefillOrder.customer_id) } : null));
     setFormData(prefill.formData);
     setProducts(prefill.products);
     setPackages(prefill.packages);
@@ -786,6 +789,9 @@ function CreateOrder() {
         const response = await api.getAddressFormById(addressFormId);
         const parsed = extractAddressFormPayload(response);
         const prefill = toCreateOrderPrefill(response);
+        const addressForm = response?.data ?? response;
+        const linkedCustomerId = addressForm.customer_id ?? addressForm.customerId ?? addressForm.order?.customerId ?? addressForm.orderData?.customerId;
+        setCustomer(addressForm.customer || (linkedCustomerId ? { id: String(linkedCustomerId) } : null));
         setSelectedAddressFormId(addressFormId);
         setFormData((prev) => ({ ...prev, ...prefill }));
         if (parsed.products.length > 0) {
@@ -1028,6 +1034,11 @@ const handleExtractDeliveryAddress = async () => {
       ...(isFedExSelected ? { packageOptions: fedexPackageOptions } : {}),
     } : null;
     return {
+      ...(customer ? { customerId: String(customer.id) } : {}),
+      pickupCountry: formData.pickupCountry.trim(),
+      pickupPincode: formData.pickupPincode.trim(),
+      destinationCountry: formData.deliveryCountry.trim(),
+      destinationPincode: formData.deliveryPincode.trim(),
       actualWeight: Number(actualWeight.toFixed(2)),
       boxes,
       products: products.map((product) => syncInvoiceProduct({ ...product, invoiceValues: product.invoiceValues })),
@@ -1042,6 +1053,7 @@ const handleExtractDeliveryAddress = async () => {
   };
 
   const handleGenerateAddressFormLink = async () => {
+    if (!customer?.id) { toast.error('Please select a customer.'); return; }
     if (!validateForm(false)) {
       toast.error('Please complete the shipment details before generating an address link.');
       return;
@@ -1223,6 +1235,7 @@ const handleExtractDeliveryAddress = async () => {
   };
 
   const handleCreateOrder = (selectedQuote, quoteIndex) => {
+    if (!customer?.id) { toast.error('Please select a customer.'); return; }
     setPendingQuoteSelection({ selectedQuote, quoteIndex });
     setPreCreateModalOpen(true);
   };
@@ -1237,6 +1250,7 @@ const handleExtractDeliveryAddress = async () => {
   };
 
   const handleConfirmCreateOrder = async () => {
+    if (!customer?.id) { toast.error('Please select a customer.'); return; }
     if (!pendingQuoteSelection) {
       return;
     }
@@ -1283,6 +1297,7 @@ const handleExtractDeliveryAddress = async () => {
     }));
   
     const orderObject = {
+      ...(customer ? { customerId: String(customer.id) } : {}),
       pickupCountry: formData.pickupCountry,
       pickupPincode: formData.pickupPincode,
       destinationCountry: formData.deliveryCountry,
@@ -1516,6 +1531,7 @@ const handleExtractDeliveryAddress = async () => {
   };
 
   const handleReset = (showToast = true) => {
+    setCustomer(null);
     setFormData(INITIAL_ORDER_FORM_DATA);
   
     setProducts([
@@ -2786,6 +2802,7 @@ const handleExtractDeliveryAddress = async () => {
         {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
         <form onSubmit={handleSubmit} className="create-order-form">
+          <CustomerSelect required value={customer} onChange={setCustomer} />
           <><div
     className="document-section"
     onPaste={handlePasteScreenshot}
@@ -3407,4 +3424,3 @@ const handleExtractDeliveryAddress = async () => {
 }
 
 export default CreateOrder;
-

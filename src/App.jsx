@@ -17,6 +17,7 @@ import KycRequests from './components/admin/KycRequests';
 import KycApproval from './components/admin/KycApproval';
 import './App.css';
 import TicketDashboard from './components/tickets/TicketDashboard';
+import Customers from './components/customers/Customers';
 import Home from './components/home/Home';
 import OrderDetails from './components/orders/order-details/OrderDetails';
 import Orders from './components/orders/order-list/Orders';
@@ -129,6 +130,7 @@ function AppRoutes() {
           </PublicRoute>
         } 
       />
+      <Route path="/public/rate-calculator" element={<RateCalculator publicMode />} />
       <Route path="/address-form/:code" element={<AddressFormPublic />} />
       <Route path="/address-forms/:code" element={<AddressFormPublic />} />
       <Route
@@ -143,6 +145,7 @@ function AppRoutes() {
                   <main className="main-content">
                     <Routes>
                       <Route path="/" element={<DefaultRoute />} />
+                      <Route path="/customers" element={<Customers />} />
                       <Route
                         path="/home"
                         element={
@@ -154,17 +157,17 @@ function AppRoutes() {
                       <Route 
                         path="/calculate-rate" 
                         element={
-                          <UserRoute>
+                          <ProtectedRoute>
                             <RateCalculator />
-                          </UserRoute>
+                          </ProtectedRoute>
                         } 
                       />
                       <Route 
                         path="/orders/create" 
                         element={
-                          <UserRoute>
+                          <ProtectedRoute>
                             <CreateOrder />
-                          </UserRoute>
+                          </ProtectedRoute>
                         } 
                       />
                       <Route 
@@ -180,9 +183,9 @@ function AppRoutes() {
                       <Route
                         path="/orders/confirmed"
                         element={
-                          <UserRoute>
+                          <ProtectedRoute>
                             <ShipmentConfirmed />
-                          </UserRoute>
+                          </ProtectedRoute>
                         }
                       />
                       <Route

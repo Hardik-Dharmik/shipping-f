@@ -23,6 +23,7 @@ function Header() {
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path === '/customers') return 'Customers';
     if (path === '/home') return 'Home';
     if (path === '/calculate-rate') return 'Rate Calculator';
     if (path === '/orders') return 'Orders';

@@ -161,10 +161,14 @@ function DataTable({
             />
           </label>
 
-          {filterControls.map((control) => (
-            <label key={control.key} className="app-data-table-field">
+          {filterControls.map((control) => control.render ? (
+            <div key={control.key} className={`app-data-table-field${control.newRow ? ' app-data-table-field--new-row' : ''}`}>{control.render({ value: query[control.key], onChange: (value) => updateQuery({ [control.key]: value, page: 1 }) })}</div>
+          ) : (
+            <label key={control.key} className={`app-data-table-field${control.newRow ? ' app-data-table-field--new-row' : ''}`}>
               <span>{control.label}</span>
-              {control.type === 'date' ? (
+              {control.type === 'text' ? (
+                <input aria-label={control.label} value={query[control.key] ?? ''} placeholder={control.placeholder} onChange={(event) => updateQuery({ [control.key]: event.target.value, page: 1 })} />
+              ) : control.type === 'date' ? (
                 <input
                   type="date"
                   value={query[control.key] ?? ''}

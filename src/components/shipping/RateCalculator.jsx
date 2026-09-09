@@ -7,7 +7,7 @@ import {
   normalizeSavedBoxDetailsList,
   toSavedBoxDetailsPayload,
 } from '../../utils/boxDetails';
-import { api } from '../../services/api';
+import { api, publicCalculatorApi } from '../../services/api';
 import './RateCalculator.css';
 import ImportantNotes from './ImportantNotes';
 
@@ -149,7 +149,64 @@ const normalizeLocationSuggestions = (response, fallbackItems = [], fieldType = 
   return fallbackItems;
 };
 
-function RateCalculator() {
+function RateCalculator({ publicMode = false }) {
+  const calculatorApi = publicMode ? publicCalculatorApi : api;
+  const ratesTableRef = useRef(null);
+  const [copyingRates, setCopyingRates] = useState(false);
+
+  const handleCopyRates = async () => {
+    if (!ratesTableRef.current) return;
+
+    setCopyingRates(true);
+    try {
+      const table = ratesTableRef.current.cloneNode(true);
+      table.querySelectorAll('.quote-breakdown-row, .quote-offer-row, .quote-expand-indicator, .rate-table-action').forEach((element) => element.remove());
+      table.querySelectorAll('.discount-pill').forEach((element) => {
+        element.textContent = ` (${element.textContent.trim()})`;
+      });
+      table.querySelectorAll('*').forEach((element) => {
+        element.removeAttribute('class');
+        element.removeAttribute('style');
+      });
+      table.removeAttribute('class');
+      table.setAttribute('style', 'border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;color:#243746;');
+      table.querySelectorAll('th, td').forEach((cell) => {
+        // Copy the displayed prices, discounts, and delivery information as text.
+        cell.textContent = cell.textContent.replace(/\s+/g, ' ').trim();
+        cell.setAttribute('style', 'border:1px solid #cbd5e1;padding:10px 12px;text-align:left;vertical-align:top;' + (cell.tagName === 'TH' ? 'background-color:#eef2f6;font-weight:bold;' : ''));
+      });
+      const plainText = Array.from(table.rows, (row) =>
+        Array.from(row.cells, (cell) => cell.textContent).join('\t')
+      ).join('\n');
+      const html = table.outerHTML;
+
+      if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        })]);
+      } else {
+        // Older browsers can still copy both formats through a copy event.
+        const copyListener = (event) => {
+          if (!event.clipboardData) return;
+          event.clipboardData.setData('text/html', html);
+          event.clipboardData.setData('text/plain', plainText);
+          event.preventDefault();
+        };
+        document.addEventListener('copy', copyListener);
+        try {
+          if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+        } finally {
+          document.removeEventListener('copy', copyListener);
+        }
+      }
+      toast.success('Rates table copied. Paste it into your email.');
+    } catch {
+      toast.error('Could not copy the table. Allow clipboard access and try again.');
+    } finally {
+      setCopyingRates(false);
+    }
+  };
   const [formData, setFormData] = useState({
     pickupCountry: '',
     pickupPincode: '',
@@ -249,6 +306,7 @@ function RateCalculator() {
   }, []);
 
   useEffect(() => {
+    if (publicMode) return;
     const fetchSavedBoxDetails = async () => {
       try {
         setLoadingSavedBoxDetails(true);
@@ -262,7 +320,7 @@ function RateCalculator() {
     };
 
     fetchSavedBoxDetails();
-  }, []);
+  }, [publicMode]);
 
   useEffect(() => {
     const normalizedValues = normalizeInvoiceValues(invoiceValues);
@@ -285,7 +343,7 @@ function RateCalculator() {
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupCountrySuggestions(true);
-        const response = await api.getCountrySuggestions(query, 10);
+        const response = await calculatorApi.getCountrySuggestions(query, 10);
         setPickupCountrySuggestions(normalizeLocationSuggestions(response, []));
       } catch (error) {
         console.error('Pickup country suggestions error:', error);
@@ -296,7 +354,7 @@ function RateCalculator() {
     }, 250);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.pickupCountry, pickupDropdownOpen]);
+  }, [calculatorApi, formData.pickupCountry, pickupDropdownOpen]);
 
   useEffect(() => {
     if (!destinationDropdownOpen) {
@@ -308,7 +366,7 @@ function RateCalculator() {
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDestinationCountrySuggestions(true);
-        const response = await api.getCountrySuggestions(query, 10);
+        const response = await calculatorApi.getCountrySuggestions(query, 10);
         setDestinationCountrySuggestions(normalizeLocationSuggestions(response, []));
       } catch (error) {
         console.error('Destination country suggestions error:', error);
@@ -319,7 +377,7 @@ function RateCalculator() {
     }, 250);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.destinationCountry, destinationDropdownOpen]);
+  }, [calculatorApi, formData.destinationCountry, destinationDropdownOpen]);
 
   useEffect(() => {
     if (!pickupPincodeSuggestionsOpen) {
@@ -336,7 +394,7 @@ function RateCalculator() {
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupPincodeSuggestions(true);
-        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        const response = await calculatorApi.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
         setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
       } catch (error) {
         console.error('Pickup pincode suggestions error:', error);
@@ -347,7 +405,7 @@ function RateCalculator() {
     }, 250);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
+  }, [calculatorApi, formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
 
   useEffect(() => {
     if (!destinationPincodeSuggestionsOpen) {
@@ -364,7 +422,7 @@ function RateCalculator() {
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDestinationPincodeSuggestions(true);
-        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.destinationCountry), 10);
+        const response = await calculatorApi.getPincodeSuggestions(query, getCountryCode(formData.destinationCountry), 10);
         setDestinationPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
       } catch (error) {
         console.error('Destination pincode suggestions error:', error);
@@ -375,7 +433,7 @@ function RateCalculator() {
     }, 250);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.destinationPincode, formData.destinationCountry, destinationPincodeSuggestionsOpen]);
+  }, [calculatorApi, formData.destinationPincode, formData.destinationCountry, destinationPincodeSuggestionsOpen]);
 
   useEffect(() => {
     const isUaeExport =
@@ -728,7 +786,7 @@ function RateCalculator() {
     try {
       const rateData = buildRateData();
 
-      const response = await api.calculateRate(rateData);
+      const response = await calculatorApi.calculateRate(rateData);
       
       if (response.success && response.data) {
         setResult(response.data);
@@ -984,7 +1042,7 @@ const handleExtractDestination = async () => {
         <h1>Rate Calculator</h1>
         <form onSubmit={handleCalculate} className="calculator-form">
           <div className="form-section">
-            <div className="ai-extractor-card" onPaste={handlePickupPasteScreenshot} tabIndex={0}>
+            {!publicMode && (<div className="ai-extractor-card" onPaste={handlePickupPasteScreenshot} tabIndex={0}>
     <h2 className="ai-extractor-title">AI Address Extractor</h2>
 
     <div className="ai-extractor-grid">
@@ -1030,7 +1088,7 @@ const handleExtractDestination = async () => {
             {pickupExtracting ? "Extracting..." : "Extract Pickup"}
         </button>
     </div>
-</div>
+</div>)}
             <h2>Pickup Details</h2>
             <div className="form-row">
               <div className="form-group">
@@ -1120,7 +1178,7 @@ const handleExtractDestination = async () => {
           </div>
 
           <div className="form-section">
-            <div
+            {!publicMode && (<div
               className="ai-extractor-card"
               onPaste={handleDestinationPasteScreenshot}
               tabIndex={0}
@@ -1163,7 +1221,7 @@ const handleExtractDestination = async () => {
                   {destinationExtracting ? 'Extracting...' : 'Extract Destination'}
                 </button>
               </div>
-            </div>
+            </div>)}
             <h2>Destination Details</h2>
             <div className="form-row">
               <div className="form-group">
@@ -1330,7 +1388,7 @@ const handleExtractDestination = async () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0 }}>Boxes</h2>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <button
+                {!publicMode && (<button
                   type="button"
                   onClick={handleSaveBoxDetails}
                   disabled={savingBoxDetails}
@@ -1347,7 +1405,7 @@ const handleExtractDestination = async () => {
                   }}
                 >
                   {savingBoxDetails ? 'Saving...' : 'Save Box Details'}
-                </button>
+                </button>)}
                 <button
                   type="button"
                   onClick={addBox}
@@ -1367,7 +1425,7 @@ const handleExtractDestination = async () => {
               </div>
             </div>
 
-            <div style={{
+            {!publicMode && (<div style={{
               marginBottom: '18px',
               padding: '14px 16px',
               border: '1px solid #d8e4f0',
@@ -1492,8 +1550,7 @@ const handleExtractDestination = async () => {
                   </span>
                 )}
               </div>
-            </div>
-
+            </div>)}
             {boxes.map((box, index) => (
               <div key={box.id} style={{
                 marginBottom: '20px',
@@ -1746,18 +1803,18 @@ const handleExtractDestination = async () => {
           </div>
 
           <div className="form-actions">
-            <button type="button" onClick={handleSaveCalculatorDetails} className="btn btn-save-calculator" disabled={savingCalculatorDetails}>
+            {!publicMode && (<button type="button" onClick={handleSaveCalculatorDetails} className="btn btn-save-calculator" disabled={savingCalculatorDetails}>
               {savingCalculatorDetails ? 'Saving...' : 'Save Details'}
-            </button>
+            </button>)}
             <button type="button" onClick={handleReset} className="btn btn-reset">
               Reset
             </button>
             <button type="submit" className="btn btn-calculate" disabled={loading}>
               {loading ? 'Calculating...' : 'Calculate'}
             </button>
-            <button type="button" onClick={handleViewSavedDetails} className="btn btn-view-saved-details">
+            {!publicMode && (<button type="button" onClick={handleViewSavedDetails} className="btn btn-view-saved-details">
               View Saved Details
-            </button>
+            </button>)}
           </div>
           {savedCalculatorCode && (
             <div className="saved-calculator-code">
@@ -1957,7 +2014,7 @@ const handleExtractDestination = async () => {
               <div className="services-table">
                 <h3>Available Services</h3>
                 <div className="table-container">
-                  <table>
+                  <table ref={ratesTableRef}>
                     <thead>
   <tr>
     <th>Carrier</th>
@@ -1970,7 +2027,7 @@ const handleExtractDestination = async () => {
     <th>Delivery Time</th>
     <th>Estimated Delivery</th>
     <th>Currency</th>
-    <th>Action</th>
+    {!publicMode && <th className="rate-table-action">Action</th>}
   </tr>
 </thead>
                     <tbody>
@@ -2067,14 +2124,14 @@ const handleExtractDestination = async () => {
 
   <td>{currency}</td>
 
-  <td onClick={(e) => e.stopPropagation()}>
+  {!publicMode && (<td className="rate-table-action" onClick={(e) => e.stopPropagation()}>
     <button
       className="btn-create-shipment"
       onClick={() => handleCreateShipment(quote)}
     >
       Create Shipment
     </button>
-  </td>
+  </td>)}
 </tr>
 
                               {/* {showFedExOfferInfo && (
@@ -2143,6 +2200,14 @@ const handleExtractDestination = async () => {
                     </tbody>
                   </table>
                 </div>
+                {result.quotes?.length > 0 && (
+                  <div className="copy-rates-actions">
+                    <button type="button" className="btn btn-calculate" onClick={handleCopyRates} disabled={copyingRates}>
+                      {copyingRates ? 'Copying...' : 'Copy table'}
+                    </button>
+                    <span>Paste directly into an email to keep the table formatting.</span>
+                  </div>
+                )}
               </div>
             </div>
             <ImportantNotes />
@@ -2154,4 +2219,3 @@ const handleExtractDestination = async () => {
 }
 
 export default RateCalculator;
-

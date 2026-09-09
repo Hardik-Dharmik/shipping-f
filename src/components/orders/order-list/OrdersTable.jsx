@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import CustomerSelect from '../../customers/CustomerSelect';
 import DataTable from '../../common/DataTable';
 import { formatCurrency } from '../../../utils/currency';
 import { api } from '../../../services/api';
@@ -8,6 +9,7 @@ import { toRebookOrderPayload } from '../../../utils/orderActions';
 
 const DEFAULT_QUERY = {
   search: '',
+  customerId: '',
   carrier: '',
   fromDate: '',
   toDate: '',
@@ -26,6 +28,7 @@ const CARRIER_OPTIONS = [
 
 const ORDER_COLUMNS = [
   { key: 'awb', label: 'AWB', sortKey: 'awb_number' },
+  { key: 'customer', label: 'Customer' },
   { key: 'carrier', label: 'Carrier' },
   { key: 'route', label: 'Route' },
   { key: 'weight', label: 'Weight' },
@@ -96,11 +99,13 @@ const normalizeOrdersResponse = (response, query) => {
 
 function OrdersTable({
   fetchOrders,
+  adminCustomerFilter = false,
   detailsPathBuilder,
   detailsStateBuilder,
   emptyMessage = 'No orders found.'
 }) {
   const navigate = useNavigate();
+  const [filterCustomer, setFilterCustomer] = useState(null);
   const [rebookingOrderId, setRebookingOrderId] = useState(null);
 
   const handlePrefillOrder = (order) => {
@@ -112,6 +117,11 @@ function OrdersTable({
   };
 
   const handleRebookOrder = async (order) => {
+    if (!order.customer_id && !order.customer?.id) {
+      toast.info('Select a customer before rebooking this order.');
+      handlePrefillOrder(order);
+      return;
+    }
     try {
       setRebookingOrderId(order.id);
       const payload = toRebookOrderPayload(order);
@@ -145,6 +155,11 @@ function OrdersTable({
       initialQuery={DEFAULT_QUERY}
       searchPlaceholder="Search by AWB, carrier, route..."
       filterControls={[
+        adminCustomerFilter ? { key: 'customerId', newRow: true, label: 'Customer ID', type: 'text', placeholder: 'Six-digit customer ID' } : {
+          key: 'customerId',
+          newRow: true,
+          render: ({ value, onChange }) => <CustomerSelect label="Filter by customer" value={value ? filterCustomer : null} onChange={(customer) => { setFilterCustomer(customer); onChange(customer ? String(customer.id) : ''); }} />,
+        },
         {
           key: 'carrier',
           label: 'Carrier',
@@ -173,6 +188,7 @@ function OrdersTable({
         return (
           <>
             <td className="awb">{order.awb_number || '-'}</td>
+            <td>{order.customer?.company_name || '-'}</td>
             <td>{order.carrier?.name || '-'}</td>
             <td>
               {data.pickup?.country || '-'} {'->'} {data.destination?.country || '-'}

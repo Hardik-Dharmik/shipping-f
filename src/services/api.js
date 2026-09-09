@@ -9,6 +9,7 @@ export function getToken() {
 
 // Helper function to make API requests
 async function apiRequest(endpoint, options = {}) {
+  const { anonymous = false, ...fetchOptions } = options;
   const url = `${API_BASE_URL}${endpoint}`;
   
   // Check if body is FormData - if so, don't set Content-Type header
@@ -24,14 +25,14 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   // Add authorization token if available
-  const token = getToken();
+  const token = anonymous ? null : getToken();
   if (token) {
     defaultOptions.headers['Authorization'] = `Bearer ${token}`;
   }
 
   const requestConfig = {
     ...defaultOptions,
-    ...options,
+    ...fetchOptions,
     headers: {
       ...defaultOptions.headers,
       ...options.headers,
@@ -57,7 +58,7 @@ async function apiRequest(endpoint, options = {}) {
       // Handle different error response formats
       const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
       const isAuthError = response.status === 401 || errorMessage === 'Token expired';
-      if (isAuthError) {
+      if (isAuthError && !anonymous) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         if (window.location.pathname !== '/login') {
@@ -93,6 +94,13 @@ function buildQueryString(params = {}) {
 
 // API functions
 export const api = {
+  createCustomer: (customer) => apiRequest('/api/customers', { method: 'POST', body: JSON.stringify(customer) }),
+  getCustomers: (params = {}) => apiRequest('/api/customers' + buildQueryString(params)),
+  getCustomerSuggestions: (query = '', limit = 10) => apiRequest('/api/customers/suggestions' + buildQueryString({ query, limit })),
+  getCustomer: (id) => apiRequest('/api/customers/' + encodeURIComponent(id)),
+  getOrder: (id) => apiRequest('/api/shipping/orders/' + encodeURIComponent(id)),
+  createAddressForm: (payload) => apiRequest('/api/address/address-forms', { method: 'POST', body: JSON.stringify(payload) }),
+
   // Login
   login: async (email, password) => {
     return apiRequest('/api/auth/login', {
@@ -192,13 +200,13 @@ export const api = {
 
   getPublicAddressForm: async (code) => {
     return apiRequest(`/api/address/address-forms/public/${code}`, {
-      method: 'GET',
+      method: 'GET', anonymous: true,
     });
   },
 
   submitPublicAddressForm: async (code, payload) => {
     return apiRequest(`/api/address/address-forms/public/${code}`, {
-      method: 'POST',
+      method: 'POST', anonymous: true,
       body: JSON.stringify(payload),
     });
   },
@@ -431,3 +439,18 @@ export const api = {
 
 export default api;
 
+
+// Public calculator requests never use or clear the visitor's account session.
+export const publicCalculatorApi = {
+  calculateRate: (rateData) => apiRequest('/api/shipping/quote/validated', {
+    method: 'POST', body: JSON.stringify(rateData), anonymous: true,
+  }),
+  getCountrySuggestions: (text, limit = 10) => apiRequest(
+    '/api/locations/country-suggestions' + buildQueryString({ text, limit }),
+    { method: 'GET', anonymous: true },
+  ),
+  getPincodeSuggestions: (text, countrycode = 'in', limit = 10) => apiRequest(
+    '/api/locations/pincode-suggestions' + buildQueryString({ text, countrycode, limit }),
+    { method: 'GET', anonymous: true },
+  ),
+};

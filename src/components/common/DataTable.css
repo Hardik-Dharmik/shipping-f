@@ -27,6 +27,15 @@
   gap: 6px;
 }
 
+.app-data-table-field--new-row {
+  grid-column: 1 / -1;
+  order: 1;
+}
+
+.app-data-table-field--new-row > * {
+  max-width: 360px;
+}
+
 .app-data-table-field span {
   font-size: 12px;
   font-weight: 700;

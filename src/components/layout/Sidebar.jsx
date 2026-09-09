@@ -41,6 +41,10 @@ function Sidebar() {
         {!isCollapsed && <h2>{config.app.name}</h2>}
       </div>
       <nav className="sidebar-nav">
+        <Link to="/customers" className={'sidebar-link ' + (location.pathname === '/customers' ? 'active' : '')} title="Customers">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M20 8v6m-3-3h6" /></svg>
+          {!isCollapsed && <span>Customers</span>}
+        </Link>
         {!isAdmin && (
           <>
             <Link 
@@ -161,6 +165,29 @@ function Sidebar() {
         )}
         {isAdmin && (
           <>
+            <Link
+              to="/calculate-rate"
+              className={`sidebar-link ${location.pathname === '/calculate-rate' ? 'active' : ''}`}
+              title={isCollapsed ? 'Rate Calculator' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              {!isCollapsed && <span>Rate Calculator</span>}
+            </Link>
+            <Link
+              to="/orders/create"
+              className={`sidebar-link ${location.pathname === '/orders/create' ? 'active' : ''}`}
+              title={isCollapsed ? 'Create Order' : ''}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" />
+                <path d="M12 10v8M8 14h8" />
+              </svg>
+              {!isCollapsed && <span>Create Order</span>}
+            </Link>
             <Link 
               to="/home" 
               className={`sidebar-link ${location.pathname === '/home' ? 'active' : ''}`}

@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
 import { formatCurrency } from '../../../utils/currency';
 import './ShipmentConfirmed.css';
 
@@ -21,6 +22,7 @@ function formatDate(value) {
 
 function ShipmentConfirmed() {
   const location = useLocation();
+  const { isAdmin, user } = useAuth();
   const order = location.state?.order || null;
   const orderData = order?.order_data || {};
   const shipmentValue = orderData.shipmentValue || {};
@@ -139,14 +141,14 @@ function ShipmentConfirmed() {
         <div className="shipment-confirmed-actions">
           {orderId && (
             <Link
-              to={`/orders/${orderId}`}
+              to={isAdmin ? `/admin/orders/${orderId}` : `/orders/${orderId}`}
               state={{ order }}
               className="shipment-confirmed-btn shipment-confirmed-btn-primary"
             >
               View Shipment Details
             </Link>
           )}
-          <Link to="/orders/list" className="shipment-confirmed-btn shipment-confirmed-btn-secondary">
+          <Link to={isAdmin ? `/admin/users/${user.id}/orders` : '/orders/list'} className="shipment-confirmed-btn shipment-confirmed-btn-secondary">
             Go To Orders
           </Link>
           <Link to="/orders/create" className="shipment-confirmed-btn shipment-confirmed-btn-tertiary">

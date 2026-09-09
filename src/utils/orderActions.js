@@ -219,6 +219,7 @@ export const toRebookOrderPayload = (order = {}) => {
       : [];
 
   return {
+    ...(order.customer_id || order.customer?.id ? { customerId: String(order.customer_id || order.customer.id) } : {}),
     pickupCountry: toStringValue(submittedDetails.pickupCountry, orderData.pickup?.country, orderData.pickupCountry, order.pickup_country),
     pickupPincode: toStringValue(submittedDetails.pickupPincode, orderData.pickup?.pincode, orderData.pickupPincode, order.pickup_pincode),
     destinationCountry: toStringValue(submittedDetails.destinationCountry, orderData.destination?.country, orderData.destinationCountry, order.destination_country),

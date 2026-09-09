@@ -30,6 +30,8 @@ function UserOrders() {
         </div>
 
         <OrdersTable
+          key={userId}
+          adminCustomerFilter
           fetchOrders={fetchOrders}
           detailsPathBuilder={(order) => `/admin/orders/${order.id}`}
           emptyMessage="No orders found."
