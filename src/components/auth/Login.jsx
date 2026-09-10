@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import './Login.css';
+import { landingPage } from '../../utils/pageAccess';
 
 function Login() {
   const navigate = useNavigate();
@@ -33,19 +34,19 @@ function Login() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -53,12 +54,12 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
-    
+
     if (validateForm()) {
       setLoading(true);
       try {
         const response = await api.login(formData.email, formData.password);
-        
+
         // Handle the API response structure
         if (response.success && response.token && response.user) {
           // Store token and user data using AuthContext
@@ -66,18 +67,19 @@ function Login() {
           // Show success toast
           toast.success('Login successful! Welcome back.');
           // Navigate to calculate-rate page
-          navigate('/calculate-rate');
+          navigate(landingPage(response.user), { replace: true });
         } else {
           const errorMsg = 'Invalid response from server. Please try again.';
           setSubmitError(errorMsg);
           toast.error(errorMsg);
         }
       } catch (error) {
-        console.error('Login error:', error);
+
         const errorMsg = error.message || 'Login failed. Please check your credentials.';
         setSubmitError(errorMsg);
         toast.error(errorMsg);
       } finally {
+        setFormData(prev => ({ ...prev, password: '' }));
         setLoading(false);
       }
     }
@@ -90,7 +92,7 @@ function Login() {
           <h1>Welcome Back</h1>
           <p>Sign in to your account</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="email">Email *</label>

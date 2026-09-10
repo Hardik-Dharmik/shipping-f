@@ -7,7 +7,8 @@ import './Billing.css';
 const tabs = ['BOE', 'D/O', 'INVOICE'];
 
 function Billing() {
-  const { isAdmin } = useAuth();
+  const { isAdmin: administrator, canAccess } = useAuth();
+  const isAdmin = administrator || canAccess('billing');
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [awbNumber, setAwbNumber] = useState('');

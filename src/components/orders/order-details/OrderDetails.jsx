@@ -9,7 +9,8 @@ import './OrderDetails.css';
 function OrderDetails() {
   const { orderId } = useParams();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin: administrator, canAccess } = useAuth();
+  const isAdmin = administrator || canAccess('user_orders');
   const [order, setOrder] = useState(location.state?.order || null);
   const [loading, setLoading] = useState(!location.state?.order);
   const [error, setError] = useState('');

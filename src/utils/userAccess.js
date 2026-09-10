@@ -40,7 +40,7 @@ export function isEmployeeUser(user) {
 }
 
 export function isKycRequiredForUser(user) {
-  if (!user || user?.role === 'admin') {
+  if (!user || ['admin', 'employee'].includes(user?.role)) {
     return false;
   }
 

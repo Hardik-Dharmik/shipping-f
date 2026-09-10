@@ -10,7 +10,7 @@
 const config = {
   // API Configuration
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://shipping-b.vercel.app',
+    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
     timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000', 10),
   },
 

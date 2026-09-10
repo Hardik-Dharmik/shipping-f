@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import './Home.css';
+import { useAuth } from '../../contexts/AuthContext';
 
 const POLL_INTERVAL_MS = 10000;
 
@@ -68,6 +69,12 @@ function NotificationList({ items, emptyLabel }) {
 }
 
 export default function Home() {
+ const {isEmployee,canAccess} = useAuth();
+ // This endpoint returns a combined feed with no documented permission filter.
+ const canLoadFeed = !isEmployee || (canAccess('billing') && canAccess('tickets'));
+ return canLoadFeed ? <NotificationFeed /> : <section className="home-notifications"><h2>Home</h2><p>Notification widgets require both Billing and Tickets access.</p></section>;
+}
+function NotificationFeed() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { PAGE_ROUTES } from '../../utils/pageAccess';
 import config from '../../config/env.js';
 import './Sidebar.css';
 
@@ -10,7 +11,7 @@ function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const { logout, user, isAdmin } = useAuth();
+  const { logout, user, isAdmin, isEmployee, canAccess } = useAuth();
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false);
 
   // Auto-open orders menu if on orders page
@@ -41,11 +42,13 @@ function Sidebar() {
         {!isCollapsed && <h2>{config.app.name}</h2>}
       </div>
       <nav className="sidebar-nav">
-        <Link to="/customers" className={'sidebar-link ' + (location.pathname === '/customers' ? 'active' : '')} title="Customers">
+ {isEmployee && PAGE_ROUTES.filter(([key]) => canAccess(key)).map(([key,label,path]) => <Link key={key} to={path} title={label} className={'sidebar-link ' + (location.pathname === path ? 'active' : '')}><span>{isCollapsed ? label.charAt(0) : label}</span></Link>)}
+ {isAdmin && <Link to="/admin/employees" title="Employees" className={'sidebar-link ' + (location.pathname === '/admin/employees' ? 'active' : '')}><span>{isCollapsed ? 'E' : 'Employees'}</span></Link>}
+        {!isEmployee && <Link to="/customers" className={'sidebar-link ' + (location.pathname === '/customers' ? 'active' : '')} title="Customers">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M20 8v6m-3-3h6" /></svg>
           {!isCollapsed && <span>Customers</span>}
-        </Link>
-        {!isAdmin && (
+        </Link>}
+        {!isAdmin && !isEmployee && (
           <>
             <Link 
               to="/home" 

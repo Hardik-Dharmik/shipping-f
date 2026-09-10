@@ -5,8 +5,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import TicketsTable from './TicketsTable';
 
 const TicketDashboard = () => {
-  const { isAdmin } = useAuth();
-  const myRole = isAdmin ? 'admin' : 'user';
+  const { isAdmin: administrator, canAccess, user } = useAuth();
+  const isAdmin = administrator || canAccess('tickets');
+  const myRole = user?.role || 'user';
 
   const [activeTab, setActiveTab] = useState('user');
   const [ticketCounts, setTicketCounts] = useState({ user: 0, admin: 0 });

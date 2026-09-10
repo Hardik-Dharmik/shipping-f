@@ -1,6 +1,8 @@
 import config from '../config/env.js';
 
 const API_BASE_URL = config.api.baseUrl;
+let forbiddenHandler;
+export function setForbiddenHandler(handler) { forbiddenHandler = handler; }
 
 // Helper function to get token from localStorage
 export function getToken() {
@@ -54,7 +56,8 @@ async function apiRequest(endpoint, options = {}) {
       data = text ? JSON.parse(text) : {};
     }
     
-    if (!response.ok) {
+    if (response.status === 403 && token && token === getToken() && endpoint !== '/api/auth/me') await forbiddenHandler?.();
+    if (!response.ok || data.success === false) {
       // Handle different error response formats
       const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
       const isAuthError = response.status === 401 || errorMessage === 'Token expired';
@@ -94,6 +97,13 @@ function buildQueryString(params = {}) {
 
 // API functions
 export const api = {
+  getMe: () => apiRequest('/api/auth/me'),
+  getEmployeePages: () => apiRequest('/api/admin/employees/pages'),
+  getEmployees: () => apiRequest('/api/admin/employees'),
+  getEmployee: (id) => apiRequest('/api/admin/employees/' + encodeURIComponent(id)),
+  createEmployee: (body) => apiRequest('/api/admin/employees', { method: 'POST', body: JSON.stringify(body) }),
+  updateEmployee: (id, body) => apiRequest('/api/admin/employees/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteEmployee: (id) => apiRequest('/api/admin/employees/' + encodeURIComponent(id), { method: 'DELETE' }),
   createCustomer: (customer) => apiRequest('/api/customers', { method: 'POST', body: JSON.stringify(customer) }),
   getCustomers: (params = {}) => apiRequest('/api/customers' + buildQueryString(params)),
   getCustomerSuggestions: (query = '', limit = 10) => apiRequest('/api/customers/suggestions' + buildQueryString({ query, limit })),
@@ -442,10 +452,10 @@ export const api = {
 export default api;
 
 
-// Public calculator requests never use or clear the visitor's account session.
+// Quotes require authentication; location suggestions remain public.
 export const publicCalculatorApi = {
   calculateRate: (rateData) => apiRequest('/api/shipping/quote/validated', {
-    method: 'POST', body: JSON.stringify(rateData), anonymous: true,
+    method: 'POST', body: JSON.stringify(rateData),
   }),
   getCountrySuggestions: (text, limit = 10) => apiRequest(
     '/api/locations/country-suggestions' + buildQueryString({ text, limit }),

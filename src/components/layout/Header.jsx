@@ -15,7 +15,7 @@ function getKycRecord(response) {
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAdmin, logout, requiresKyc } = useAuth();
+  const { user, isAdmin, isEmployee, logout, requiresKyc } = useAuth();
   const { isCollapsed } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [kycStatus, setKycStatus] = useState('');
@@ -23,6 +23,7 @@ function Header() {
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path === '/admin/employees') return 'Employees';
     if (path === '/customers') return 'Customers';
     if (path === '/home') return 'Home';
     if (path === '/calculate-rate') return 'Rate Calculator';
@@ -156,7 +157,7 @@ function Header() {
           )}
         </div>
         <div className="header-left">
-          {!isAdmin && (
+          {!isAdmin && !isEmployee && (
               <span
                 type="button"
                 className="header-org-button"
@@ -178,7 +179,7 @@ function Header() {
               </div>
               <div className="header-user-info">
                 <span className="header-user-name">{user.name}</span>
-                <span className="header-user-role">{isAdmin ? 'Admin' : 'User'}</span>
+                <span className="header-user-role">{isAdmin ? 'Admin' : isEmployee ? 'Employee' : 'User'}</span>
               </div>
               <svg 
                 className={`header-dropdown-icon ${dropdownOpen ? 'open' : ''}`}
@@ -201,7 +202,7 @@ function Header() {
                   <div className="header-dropdown-user-info">
                     <div className="header-dropdown-name">{user.name}</div>
                     <div className="header-dropdown-email">{user.email}</div>
-                    <div className="header-dropdown-role">{isAdmin ? 'Administrator' : 'User'}</div>
+                    <div className="header-dropdown-role">{isAdmin ? 'Administrator' : isEmployee ? 'Employee' : 'User'}</div>
                   </div>
                 </div>
                 <div className="header-dropdown-divider"></div>

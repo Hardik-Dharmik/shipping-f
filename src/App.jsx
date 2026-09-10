@@ -1,4 +1,4 @@
-﻿import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -10,6 +10,8 @@ import Signup from './components/auth/Signup';
 import RateCalculator from './components/shipping/RateCalculator';
 import Billing from './components/billing/Billing';
 import Kyc from './components/kyc/Kyc';
+import Employees from './components/admin/Employees';
+import { routePermission } from './utils/pageAccess';
 import Users from './components/admin/Users';
 import UsersWithOrders from './components/admin/UsersWithOrders';
 import UserOrders from './components/admin/UserOrders';
@@ -30,89 +32,41 @@ import ShipmentConfirmed from './components/orders/shipment-confirmed/ShipmentCo
 import ContactDetailsList from './components/contact-details/ContactDetailsList';
 import { SchedulePickup, MyPickups } from './components/pickups/Pickups';
 
-// Protected Route Component
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+ const {isAuthenticated,loading,authError,refreshPermissions,logout,isEmployee,canAccess,landingPath} = useAuth();
+ const {pathname} = useLocation();
+ if (loading) return <div role="status">Loading...</div>;
+ if (authError) return <div role="alert">{authError} <button onClick={refreshPermissions}>Retry</button> <button onClick={logout}>Logout</button></div>;
+ if (!isAuthenticated) return <Navigate to="/login" replace />;
+ if (isEmployee && pathname !== '/access-not-assigned' && !canAccess(routePermission(pathname))) return <Navigate to={landingPath} replace />;
+ return children;
 }
-
-// Public Route Component (redirect based on user role if already authenticated)
-function PublicRoute({ children }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (isAuthenticated) {
-    if (isAdmin) {
-      return <Navigate to="/home" replace />;
-    }
-    return <Navigate to="/calculate-rate" replace />;
-  }
-
-  return children;
+function PublicRoute({children}) {
+ const {isAuthenticated,loading,landingPath} = useAuth();
+ if (loading) return <div>Loading...</div>;
+ return isAuthenticated ? <Navigate to={landingPath} replace /> : children;
 }
-
-// Admin Route Component (only accessible by admin users)
-function AdminRoute({ children }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/calculate-rate" replace />;
-  }
-
-  return children;
+function AdminRoute({children,adminOnly=false}) {
+ const {isAdmin,isEmployee,canAccess,landingPath} = useAuth();
+ const {pathname} = useLocation();
+ return isAdmin || (!adminOnly && isEmployee && canAccess(routePermission(pathname))) ? children : <Navigate to={landingPath} replace />;
 }
-
-// User Route Component (only accessible by non-admin users)
-function UserRoute({ children }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (isAdmin) {
-    return <Navigate to="/home" replace />;
-  }
-
-  return children;
+function UserRoute({children}) {
+ const {isAdmin,isEmployee,landingPath} = useAuth();
+ return isAdmin || isEmployee ? <Navigate to={landingPath} replace /> : children;
 }
-
-// Default Route Component (redirects based on user role)
 function DefaultRoute() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  return <Navigate to="/home" replace />;
+ const {landingPath} = useAuth();
+ return <Navigate to={landingPath} replace />;
+}
+function AccessNotAssigned() {
+ const {landingPath,logout} = useAuth();
+ if (landingPath !== '/access-not-assigned') return <Navigate to={landingPath} replace />;
+ return <section><h1>Access not assigned</h1><p>Contact your administrator to request page access.</p><button onClick={logout}>Logout</button></section>;
 }
 
 function AppRoutes() {
+  const { accessKey } = useAuth();
   return (
     <Routes>
       <Route 
@@ -131,7 +85,7 @@ function AppRoutes() {
           </PublicRoute>
         } 
       />
-      <Route path="/public/rate-calculator" element={<RateCalculator publicMode />} />
+      <Route path="/public/rate-calculator" element={<Navigate to="/calculate-rate" replace />} />
       <Route path="/address-form/:code" element={<AddressFormPublic />} />
       <Route path="/address-forms/:code" element={<AddressFormPublic />} />
       <Route
@@ -143,9 +97,11 @@ function AppRoutes() {
                 <Sidebar />
                 <div className="app-content">
                   <Header />
-                  <main className="main-content">
+                  <main className="main-content" key={accessKey}>
                     <Routes>
                       <Route path="/" element={<DefaultRoute />} />
+<Route path="/access-not-assigned" element={<AccessNotAssigned />} />
+<Route path="/admin/employees" element={<AdminRoute adminOnly><Employees /></AdminRoute>} />
                       <Route path="/customers" element={<Customers />} />
                       <Route
                         path="/home"
