@@ -1,3 +1,4 @@
+import { addressLinkUrl } from '../../../utils/addressLinkUrl';
 import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../../../services/api';
@@ -1061,20 +1062,8 @@ const handleExtractDeliveryAddress = async () => {
     try {
       setCreatingAddressFormLink(true);
       const response = await api.createOrderAddressLink(buildAddressLinkOrder());
-      const apiPublicLink = response?.data?.public_link || response?.public_link || '';
-
-      if (!apiPublicLink) {
-        throw new Error('Address link not returned by server.');
-      }
-
-      // The API can be hosted separately from the React app (for example on
-      // localhost:3000 in development), so construct the share URL from the
-      // current frontend origin rather than sending recipients to the API.
-      const code = apiPublicLink.split('/').filter(Boolean).pop() || '';
-      if (!code) {
-        throw new Error('Address link code not returned by server.');
-      }
-      const generatedUrl = `${window.location.origin}/address-form/${encodeURIComponent(code)}`;
+      const generatedUrl = addressLinkUrl(response);
+      const code = new URL(generatedUrl).pathname.split('/').pop();
       setCreatedAddressForm({ code, url: generatedUrl });
       setAddressLinkModalOpen(true);
       toast.success('Link generated successfully.');
