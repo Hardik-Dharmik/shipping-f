@@ -21,6 +21,7 @@ import Customers from './components/customers/Customers';
 import Home from './components/home/Home';
 import OrderDetails from './components/orders/order-details/OrderDetails';
 import Orders from './components/orders/order-list/Orders';
+import ManualOrder from './components/orders/create-order/ManualOrder';
 import CreateOrder from './components/orders/create-order/CreateOrder';
 import AddressFormsList from './components/orders/address-form/list/AddressFormsList';
 import AddressFormPublic from './components/orders/address-form/public/AddressFormPublic';
@@ -162,6 +163,7 @@ function AppRoutes() {
                           </ProtectedRoute>
                         } 
                       />
+                      <Route path="/orders/manual" element={<ProtectedRoute><ManualOrder /></ProtectedRoute>} />
                       <Route 
                         path="/orders/create" 
                         element={

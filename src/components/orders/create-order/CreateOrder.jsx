@@ -1569,7 +1569,7 @@ const handleExtractDeliveryAddress = async () => {
     const deliverySuggestions = isDeliverySection ? deliveryContactSuggestions : [];
     
     return (
-      <div className="address-section">
+      <div className="address-section" id={`order-${prefix}`}>
         <h2 className="section-title">{title}</h2>
         {isPickupSection && (
           <div className="saved-contact-tools">
@@ -2319,7 +2319,7 @@ const handleExtractDeliveryAddress = async () => {
 
   const renderProductSection = () => {
     return (
-      <div className="product-section">
+      <div className="product-section" id="order-products">
         <div className="product-section-header">
           <h2 className="section-title">Product Details</h2>
         </div>
@@ -2451,7 +2451,7 @@ const handleExtractDeliveryAddress = async () => {
     const totalChargeable = packageSummaries.reduce((sum, pkg) => sum + pkg.chargeableWeight, 0);
 
     return (
-      <div className="package-section">
+      <div className="package-section" id="order-packages">
         <div className="package-section-header">
           <h2 className="section-title">Package Details</h2>
           <button
@@ -2689,14 +2689,30 @@ const handleExtractDeliveryAddress = async () => {
     <div className="create-order">
       <div className="create-order-container">
         <div className="create-order-header">
-          <h1>Create Order</h1>
-          <p>Fill in the pickup and delivery details</p>
+          <div><span className="create-order-eyebrow">SHIPMENTS / NEW ORDER</span><h1>New shipment</h1><p>Add your customer, shipment details, and addresses to compare rates and book.</p></div>
+          <Link to="/orders/list" className="create-order-back">View orders <span aria-hidden="true">&rarr;</span></Link>
         </div>
-
-        <section className="carrier-selector" aria-labelledby="carrier-selector-title">
+        <div className="order-workspace">
+          <aside className="order-workspace-sidebar">
+            <div className="order-workspace-summary">
+              <span className="create-order-eyebrow">YOUR SHIPMENT</span>
+              <h2>At a glance</h2>
+              <div className="order-route-stop"><span className="order-route-dot" /><div><small>FROM</small><strong>{formData.pickupCountry || 'Pickup location'}</strong><span>{formData.pickupPincode || 'Add pickup pincode'}</span></div></div>
+              <div className="order-route-stop order-route-stop--destination"><span className="order-route-dot" /><div><small>TO</small><strong>{formData.deliveryCountry || 'Delivery location'}</strong><span>{formData.deliveryPincode || 'Add delivery pincode'}</span></div></div>
+              <dl><div><dt>Customer</dt><dd>{customer?.company_name || customer?.companyName || customer?.id || 'Not selected'}</dd></div><div><dt>Carrier</dt><dd>{selectedCarrier || 'Compare all'}</dd></div><div><dt>Packages</dt><dd>{packages.length}</dd></div><div><dt>Shipment value</dt><dd>{formatCurrency(calculateShipmentValue())}</dd></div></dl>
+            </div>
+            <nav className="order-workspace-nav" aria-label="Order form sections">
+              {[['order-customer', 'Customer'], ['order-setup', 'Carrier & setup'], ['order-pickup', 'Pickup address'], ['order-delivery', 'Delivery address'], ['order-products', 'Products'], ['order-packages', 'Packages'], ['order-compliance', 'Compliance']].map(([id, label], index) => <a key={id} href={'#' + id}><span>{String(index + 1).padStart(2, '0')}</span>{label}</a>)}
+            </nav>
+            <p className="order-workspace-note">Complete your shipment details to compare available rates before booking.</p>
+          </aside>
+          <div className="order-workspace-main">
+        <form onSubmit={handleSubmit} className="create-order-form">
+          <section className="order-customer-card" id="order-customer" aria-labelledby="order-customer-title"><div><span className="create-order-eyebrow">CUSTOMER</span><h2 id="order-customer-title">Who is this shipment for?</h2><p>Select the customer to associate with this order.</p></div><CustomerSelect required value={customer} onChange={setCustomer} /></section>
+        <section id="order-setup" className="carrier-selector" aria-labelledby="carrier-selector-title">
           <div>
             <h3 id="carrier-selector-title">Preferred carrier</h3>
-            <p>Select a carrier to include it in the rate request and saved order draft.</p>
+            <p>Choose your preferred carrier or compare all available rates.</p>
           </div>
           <div className="carrier-selector-actions" role="group" aria-label="Carrier selection">
             <button type="button" className={!selectedCarrier ? 'carrier-button selected' : 'carrier-button'} onClick={() => setSelectedCarrier('')}>Any carrier</button>
@@ -2772,8 +2788,8 @@ const handleExtractDeliveryAddress = async () => {
         )}
         <div className="rate-calculator-code-tools">
           <div>
-            <h3>Load Saved Rate Calculator Details</h3>
-            <p>Enter an RC code to fill the route, package details, invoice value, compliance options, and insurance selection.</p>
+            <h3>Have a saved quote?</h3>
+            <p>Load your saved shipment details with an RC code.</p>
           </div>
           <div className="rate-calculator-code-actions">
             <input
@@ -2790,9 +2806,9 @@ const handleExtractDeliveryAddress = async () => {
         </div>
         {isUsingAddressForm && loadingPrefill && <p className="prefill-loading-note">Loading selected form data...</p>}
 
-        <form onSubmit={handleSubmit} className="create-order-form">
-          <CustomerSelect required value={customer} onChange={setCustomer} />
-          <><div
+
+
+          <><details className="order-extractor"><summary><span>Import pickup address from a screenshot</span><small>Optional</small></summary><div
     className="document-section"
     onPaste={handlePasteScreenshot}
     tabIndex={0}
@@ -2856,10 +2872,10 @@ const handleExtractDeliveryAddress = async () => {
     >
         {extracting ? "Extracting..." : "Extract Pickup Address"}
     </button>
-</div>
+</div></details>
           {renderAddressSection('pickup', 'Pickup Address')}
 
-          <div
+          <details className="order-extractor"><summary><span>Import delivery address from a screenshot</span><small>Optional</small></summary><div
   className="document-section"
   onPaste={handleDeliveryPasteScreenshot}
   tabIndex={0}
@@ -2919,13 +2935,13 @@ const handleExtractDeliveryAddress = async () => {
       ? "Extracting..."
       : "Extract Destination Address"}
   </button>
-</div>
+</div></details>
           {renderAddressSection('delivery', 'Delivery Address')}</>
           {renderProductSection()}
           {renderPackageSection()}
           {renderDocumentSection()}
 
-          <div className="compliance-section">
+          <div className="compliance-section" id="order-compliance">
           <h3 className="section-title">Compliance & Declarations</h3>
 
           <div className="checkbox-group compliance-option">
@@ -3075,6 +3091,8 @@ const handleExtractDeliveryAddress = async () => {
             </button>
           </div>
         </form>
+          </div>
+        </div>
 
         {addressLinkModalOpen && (
           <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="address-link-title">

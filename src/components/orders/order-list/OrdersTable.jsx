@@ -184,6 +184,12 @@ function OrdersTable({
       errorMessage="Failed to load orders"
       renderRow={(order) => {
         const data = order.order_data || {};
+        if (data.orderType === 'manual') return <>
+          <td className="awb">{order.awb_number}</td><td>{order.customer?.company_name || '-'}</td>
+          {Array.from({ length: 6 }, (_, index) => <td key={index}>-</td>)}
+          <td>{formatDate(order.created_at)}</td><td>-</td>
+          <td><Link to={detailsPathBuilder(order)} state={detailsStateBuilder ? detailsStateBuilder(order) : { order }} className="details-link">View</Link></td><td>-</td>
+        </>;
 
         return (
           <>

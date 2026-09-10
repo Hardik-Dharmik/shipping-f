@@ -152,6 +152,8 @@ export const api = {
     });
   },
 
+  createManualOrder: (body) => apiRequest('/api/shipping/order/manual', { method: 'POST', body }),
+
   createOrder: async (orderData) => {
     const isFormData = orderData instanceof FormData;
     return apiRequest('/api/shipping/order', {

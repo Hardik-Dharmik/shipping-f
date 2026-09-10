@@ -1,8 +1,10 @@
+import ManualOrderDetails from './ManualOrderDetails';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../../utils/currency';
 import './OrderDetails.css';
 
 export default function OrderDetailsView({ order, showBackLink = false }) {
+  if (order?.order_data?.orderType === 'manual') return <ManualOrderDetails order={order} showBackLink={showBackLink} />;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-US', {

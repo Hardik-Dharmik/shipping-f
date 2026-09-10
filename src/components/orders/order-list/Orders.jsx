@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { api } from '../../../services/api';
 import OrdersTable from './OrdersTable';
 import './Orders.css';
@@ -9,6 +10,7 @@ function Orders() {
         <div className="orders-header">
           <div>
             <h1>Orders</h1>
+            <Link to="/orders/manual" className="details-link">Create Manual Order</Link>
             <p className="subtitle">View all created shipments</p>
           </div>
         </div>
