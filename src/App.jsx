@@ -51,9 +51,9 @@ function AdminRoute({children,adminOnly=false}) {
  const {pathname} = useLocation();
  return isAdmin || (!adminOnly && isEmployee && canAccess(routePermission(pathname))) ? children : <Navigate to={landingPath} replace />;
 }
-function UserRoute({children}) {
+function UserRoute({children,allowAdmin=false}) {
  const {isAdmin,isEmployee,landingPath} = useAuth();
- return isAdmin || isEmployee ? <Navigate to={landingPath} replace /> : children;
+ return (isAdmin && !allowAdmin) || isEmployee ? <Navigate to={landingPath} replace /> : children;
 }
 function DefaultRoute() {
  const {landingPath} = useAuth();
@@ -131,7 +131,7 @@ function AppRoutes() {
                       <Route 
                         path="/orders/list" 
                         element={
-                          <UserRoute>
+                          <UserRoute allowAdmin>
                             <Orders />
                           </UserRoute>
                         } 
@@ -157,7 +157,7 @@ function AppRoutes() {
                       <Route 
                         path="/orders/:orderId" 
                         element={
-                          <UserRoute>
+                          <UserRoute allowAdmin>
                             <OrderDetails />
                           </UserRoute>
                         } 
@@ -165,7 +165,7 @@ function AppRoutes() {
                       <Route 
                         path="/orders" 
                         element={
-                          <UserRoute>
+                          <UserRoute allowAdmin>
                             <Navigate to="/orders/list" replace />
                           </UserRoute>
                         } 
