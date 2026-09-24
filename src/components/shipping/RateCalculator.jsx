@@ -1,3 +1,4 @@
+import { getCountryCode } from '../../utils/countryCodes';
 import { Fragment, useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getCurrencySymbol, getCurrencyName, formatCurrency } from '../../utils/currency';
@@ -30,30 +31,12 @@ const COUNTRIES = [
 ];
 
 // Countries that use city name instead of pincode
-const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
+const CITY_NAME_COUNTRIES = ['ae', 'om', 'qa', 'eg'];
+const requiresCityName = (country) => CITY_NAME_COUNTRIES.includes(getCountryCode(country));
 
-const COUNTRY_CODE_MAP = {
-  UAE: 'ae',
-  GERMANY: 'de',
-  UK: 'gb',
-  USA: 'us',
-  INDIA: 'in',
-  CHINA: 'cn',
-  'SOUTH KOREA': 'kr',
-  FRANCE: 'fr',
-  AUSTRALIA: 'au',
-  CANADA: 'ca',
-  SAUDI: 'sa',
-  BAHRAIN: 'bh',
-  OMAN: 'om',
-  QATAR: 'qa',
-  EGYPT: 'eg',
-};
 
-const getCountryCode = (country = '') => {
-  const normalizedCountry = country.trim().toUpperCase();
-  return COUNTRY_CODE_MAP[normalizedCountry] || 'in';
-};
+
+
 
 const getSuggestionValue = (item) => {
   if (typeof item === 'string') {
@@ -125,6 +108,8 @@ const formatSuggestionLabel = (suggestion, fieldType = 'default') => {
   if (typeof suggestion === 'string') {
     return suggestion;
   }
+
+  if (fieldType === 'city') return getCityValue(suggestion);
 
   if (fieldType === 'pincode') {
     const pincode = getPincodeValue(suggestion);
@@ -269,18 +254,14 @@ function RateCalculator({ publicMode = false }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedQuoteIndex, setExpandedQuoteIndex] = useState(null);
   // Pickup Extractor
-  const [pickupExtractPrompt, setPickupExtractPrompt] = useState(
-    "Extract pickup country and postal code/city from this shipping screenshot. Return JSON with pickupCountry and pickupPincode."
-  );
+  const pickupExtractPrompt = "Extract pickup country and postal code/city from this shipping screenshot. Return JSON with pickupCountry and pickupPincode.";
 
   const [pickupExtractImage, setPickupExtractImage] = useState(null);
   const [pickupExtractPreview, setPickupExtractPreview] = useState("");
   const [pickupExtracting, setPickupExtracting] = useState(false);
 
   // Destination Extractor
-  const [destinationExtractPrompt, setDestinationExtractPrompt] = useState(
-    "Extract destination country and postal code/city from this shipping screenshot. Return JSON with destinationCountry and destinationPincode."
-  );
+  const destinationExtractPrompt = "Extract destination country and postal code/city from this shipping screenshot. Return JSON with destinationCountry and destinationPincode.";
 
   const [destinationExtractImage, setDestinationExtractImage] = useState(null);
   const [destinationExtractPreview, setDestinationExtractPreview] = useState("");
@@ -384,27 +365,34 @@ function RateCalculator({ publicMode = false }) {
       return;
     }
 
+    const countryCode = getCountryCode(formData.pickupCountry);
+    const useCity = requiresCityName(formData.pickupCountry);
     const query = formData.pickupPincode.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setPickupPincodeSuggestions([]);
       setLoadingPickupPincodeSuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupPincodeSuggestions(true);
-        const response = await calculatorApi.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
-        setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+        const response = useCity
+          ? await calculatorApi.getCitySuggestions(query, countryCode, 10)
+          : await calculatorApi.getPincodeSuggestions(query, countryCode, 10);
+        if (cancelled) return;
+        setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], useCity ? 'city' : 'pincode'));
       } catch (error) {
+        if (cancelled) return;
         console.error('Pickup pincode suggestions error:', error);
         setPickupPincodeSuggestions([]);
       } finally {
-        setLoadingPickupPincodeSuggestions(false);
+        if (!cancelled) setLoadingPickupPincodeSuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [calculatorApi, formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
 
   useEffect(() => {
@@ -412,27 +400,34 @@ function RateCalculator({ publicMode = false }) {
       return;
     }
 
+    const countryCode = getCountryCode(formData.destinationCountry);
+    const useCity = requiresCityName(formData.destinationCountry);
     const query = formData.destinationPincode.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setDestinationPincodeSuggestions([]);
       setLoadingDestinationPincodeSuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDestinationPincodeSuggestions(true);
-        const response = await calculatorApi.getPincodeSuggestions(query, getCountryCode(formData.destinationCountry), 10);
-        setDestinationPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
+        const response = useCity
+          ? await calculatorApi.getCitySuggestions(query, countryCode, 10)
+          : await calculatorApi.getPincodeSuggestions(query, countryCode, 10);
+        if (cancelled) return;
+        setDestinationPincodeSuggestions(normalizeLocationSuggestions(response, [], useCity ? 'city' : 'pincode'));
       } catch (error) {
+        if (cancelled) return;
         console.error('Destination pincode suggestions error:', error);
         setDestinationPincodeSuggestions([]);
       } finally {
-        setLoadingDestinationPincodeSuggestions(false);
+        if (!cancelled) setLoadingDestinationPincodeSuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [calculatorApi, formData.destinationPincode, formData.destinationCountry, destinationPincodeSuggestionsOpen]);
 
   useEffect(() => {
@@ -483,9 +478,6 @@ function RateCalculator({ publicMode = false }) {
     });
   };
 
-  const requiresCityName = (country) => {
-    return CITY_NAME_COUNTRIES.includes(country.toUpperCase());
-  };
 
   // Calculate volumetric weight for a single box
   const calculateBoxVolumetricWeight = (box) => {
@@ -1067,15 +1059,6 @@ const handleExtractDestination = async () => {
             )}
         </div>
 
-        <div className="ai-extractor-field">
-            <label>Prompt</label>
-
-            <textarea
-                className="ai-prompt"
-                value={pickupExtractPrompt}
-                onChange={(e) => setPickupExtractPrompt(e.target.value)}
-            />
-        </div>
     </div>
 
     <div className="ai-actions">
@@ -1160,7 +1143,7 @@ const handleExtractDestination = async () => {
                             key={suggestion}
                             className={`dropdown-option ${formData.pickupPincode === suggestion ? 'selected' : ''}`}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, pickupPincode: getPincodeValue(suggestion) }));
+                              setFormData((prev) => ({ ...prev, pickupPincode: requiresCityName(formData.pickupCountry) ? suggestion : getPincodeValue(suggestion) }));
                               setPickupPincodeSuggestionsOpen(false);
                             }}
                           >
@@ -1168,7 +1151,7 @@ const handleExtractDestination = async () => {
                           </div>
                         ))
                       ) : (
-                        <div className="dropdown-option no-results">No pincode suggestions found</div>
+                        <div className="dropdown-option no-results">{requiresCityName(formData.pickupCountry) ? 'No city suggestions found' : 'No pincode suggestions found'}</div>
                       )}
                     </div>
                   </div>
@@ -1201,14 +1184,6 @@ const handleExtractDestination = async () => {
                       <img src={destinationExtractPreview} alt="Destination preview" />
                     </div>
                   )}
-                </div>
-                <div className="ai-extractor-field">
-                  <label>Prompt</label>
-                  <textarea
-                    className="ai-prompt"
-                    value={destinationExtractPrompt}
-                    onChange={(e) => setDestinationExtractPrompt(e.target.value)}
-                  />
                 </div>
               </div>
               <div className="ai-actions">
@@ -1293,7 +1268,7 @@ const handleExtractDestination = async () => {
                             key={suggestion}
                             className={`dropdown-option ${formData.destinationPincode === suggestion ? 'selected' : ''}`}
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, destinationPincode: getPincodeValue(suggestion) }));
+                              setFormData((prev) => ({ ...prev, destinationPincode: requiresCityName(formData.destinationCountry) ? suggestion : getPincodeValue(suggestion) }));
                               setDestinationPincodeSuggestionsOpen(false);
                             }}
                           >
@@ -1301,7 +1276,7 @@ const handleExtractDestination = async () => {
                           </div>
                         ))
                       ) : (
-                        <div className="dropdown-option no-results">No pincode suggestions found</div>
+                        <div className="dropdown-option no-results">{requiresCityName(formData.destinationCountry) ? 'No city suggestions found' : 'No pincode suggestions found'}</div>
                       )}
                     </div>
                   </div>
@@ -1425,7 +1400,7 @@ const handleExtractDestination = async () => {
               </div>
             </div>
 
-            {!publicMode && (<div style={{
+            {/* {!publicMode && (<div style={{
               marginBottom: '18px',
               padding: '14px 16px',
               border: '1px solid #d8e4f0',
@@ -1550,7 +1525,7 @@ const handleExtractDestination = async () => {
                   </span>
                 )}
               </div>
-            </div>)}
+            </div>)} */}
             {boxes.map((box, index) => (
               <div key={box.id} style={{
                 marginBottom: '20px',
@@ -1748,7 +1723,7 @@ const handleExtractDestination = async () => {
           <div className="form-section compliance-section">
             <h2>Compliance &amp; Declarations</h2>
             <div className="form-row additional-services-grid">
-              <div className="checkbox-group compliance-option">
+              {/* <div className="checkbox-group compliance-option">
                 <input
                   type="checkbox"
                   id="requireBOE"
@@ -1780,7 +1755,7 @@ const handleExtractDestination = async () => {
                 />
                 <label htmlFor="exportDeclaration">Export Declaration (mandatory for UAE exports) - Fee: 120 AED</label>
                 {formData.pickupCountry === 'UAE' && formData.destinationCountry && formData.destinationCountry !== 'UAE' && <p className="charge-note">This fee is applied automatically for UAE export shipments.</p>}
-              </div>
+              </div> */}
               <div className="radio-group">
                 <span className="radio-group-title">Duty Exemption</span>
                 <div className="radio-options">

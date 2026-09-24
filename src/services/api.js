@@ -97,6 +97,7 @@ function buildQueryString(params = {}) {
 
 // API functions
 export const api = {
+  getAnalytics: () => apiRequest('/api/analytics'),
   getMe: () => apiRequest('/api/auth/me'),
   getEmployeePages: () => apiRequest('/api/admin/employees/pages'),
   getEmployees: () => apiRequest('/api/admin/employees'),
@@ -454,6 +455,10 @@ export default api;
 
 // Quotes require authentication; location suggestions remain public.
 export const publicCalculatorApi = {
+  getCitySuggestions: (text, countrycode, limit = 10) => apiRequest(
+    '/api/locations/city-suggestions' + buildQueryString({ text, countrycode, limit }),
+    { method: 'GET', anonymous: true },
+  ),
   calculateRate: (rateData) => apiRequest('/api/shipping/quote/validated', {
     method: 'POST', body: JSON.stringify(rateData),
   }),

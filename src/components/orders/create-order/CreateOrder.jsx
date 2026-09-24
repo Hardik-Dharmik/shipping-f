@@ -1,3 +1,4 @@
+import { getCountryCode } from '../../../utils/countryCodes';
 import { addressLinkUrl } from '../../../utils/addressLinkUrl';
 import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -48,23 +49,7 @@ const COUNTRIES = [
   'EGYPT'
 ];
 
-const COUNTRY_CODE_MAP = {
-  UAE: 'ae',
-  GERMANY: 'de',
-  UK: 'gb',
-  USA: 'us',
-  INDIA: 'in',
-  CHINA: 'cn',
-  'SOUTH KOREA': 'kr',
-  FRANCE: 'fr',
-  AUSTRALIA: 'au',
-  CANADA: 'ca',
-  SAUDI: 'sa',
-  BAHRAIN: 'bh',
-  OMAN: 'om',
-  QATAR: 'qa',
-  EGYPT: 'eg',
-};
+
 
 // Countries that use city name instead of pincode
 const CITY_NAME_COUNTRIES = ['UAE', 'OMAN', 'QATAR', 'EGYPT'];
@@ -76,54 +61,7 @@ const FEDEX_LITHIUM_OPTIONS = [
   { value: 'ion_packed_with_equipment', label: 'Lithium-ion packed with equipment', detail: 'UN3481, PI966' },
 ];
 
-const getCountryCode = (country = '') => {
-  const normalizedCountry = (country || '').trim().toUpperCase();
 
-  if (!normalizedCountry) return 'in';
-
-  // If already a two-letter alpha2 code, return it lowercased
-  if (/^[A-Z]{2}$/.test(normalizedCountry)) {
-    return normalizedCountry.toLowerCase();
-  }
-
-  // Direct exact match
-  if (COUNTRY_CODE_MAP[normalizedCountry]) {
-    return COUNTRY_CODE_MAP[normalizedCountry];
-  }
-
-  // Common aliases mapping to our country keys
-  const ALIAS_TO_KEY = {
-    'UNITED ARAB EMIRATES': 'UAE',
-    'UNITED ARAB EMIRATE': 'UAE',
-    'U.A.E.': 'UAE',
-    'UNITED STATES': 'USA',
-    'UNITED STATES OF AMERICA': 'USA',
-    'AMERICA': 'USA',
-    'US': 'USA',
-    'UNITED KINGDOM': 'UK',
-    'GREAT BRITAIN': 'UK',
-    'BRITAIN': 'UK',
-    'ENGLAND': 'UK',
-    'REPUBLIC OF KOREA': 'SOUTH KOREA',
-    "PEOPLE'S REPUBLIC OF CHINA": 'CHINA',
-    'CHINA, PRC': 'CHINA',
-    'KINGDOM OF SAUDI ARABIA': 'SAUDI',
-  };
-
-  if (ALIAS_TO_KEY[normalizedCountry] && COUNTRY_CODE_MAP[ALIAS_TO_KEY[normalizedCountry]]) {
-    return COUNTRY_CODE_MAP[ALIAS_TO_KEY[normalizedCountry]];
-  }
-
-  // Try substring matches: handle values like 'United Arab Emirates', 'UAE (Dubai)', etc.
-  for (const [key, code] of Object.entries(COUNTRY_CODE_MAP)) {
-    if (normalizedCountry.includes(key) || key.includes(normalizedCountry)) {
-      return code;
-    }
-  }
-
-  // Fallback to India if nothing matches
-  return 'in';
-};
 
 const getSuggestionValue = (item) => {
   if (typeof item === 'string') {
@@ -647,27 +585,31 @@ function CreateOrder() {
       return;
     }
 
+    const countryCode = getCountryCode(formData.pickupCountry);
     const query = formData.pickupCity.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setPickupCitySuggestions([]);
       setLoadingPickupCitySuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupCitySuggestions(true);
-        const response = await api.getCitySuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        const response = await api.getCitySuggestions(query, countryCode, 10);
+        if (cancelled) return;
         setPickupCitySuggestions(normalizeLocationSuggestions(response));
       } catch (error) {
+        if (cancelled) return;
         console.error('Pickup city suggestions error:', error);
         setPickupCitySuggestions([]);
       } finally {
-        setLoadingPickupCitySuggestions(false);
+        if (!cancelled) setLoadingPickupCitySuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [formData.pickupCity, formData.pickupCountry, pickupCitySuggestionsOpen]);
 
   useEffect(() => {
@@ -675,27 +617,31 @@ function CreateOrder() {
       return;
     }
 
+    const countryCode = getCountryCode(formData.deliveryCountry);
     const query = formData.deliveryCity.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setDeliveryCitySuggestions([]);
       setLoadingDeliveryCitySuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDeliveryCitySuggestions(true);
-        const response = await api.getCitySuggestions(query, getCountryCode(formData.deliveryCountry), 10);
+        const response = await api.getCitySuggestions(query, countryCode, 10);
+        if (cancelled) return;
         setDeliveryCitySuggestions(normalizeLocationSuggestions(response));
       } catch (error) {
+        if (cancelled) return;
         console.error('Delivery city suggestions error:', error);
         setDeliveryCitySuggestions([]);
       } finally {
-        setLoadingDeliveryCitySuggestions(false);
+        if (!cancelled) setLoadingDeliveryCitySuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [formData.deliveryCity, formData.deliveryCountry, deliveryCitySuggestionsOpen]);
 
   useEffect(() => {
@@ -703,27 +649,31 @@ function CreateOrder() {
       return;
     }
 
+    const countryCode = getCountryCode(formData.pickupCountry);
     const query = formData.pickupPincode.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setPickupPincodeSuggestions([]);
       setLoadingPickupPincodeSuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingPickupPincodeSuggestions(true);
-        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.pickupCountry), 10);
+        const response = await api.getPincodeSuggestions(query, countryCode, 10);
+        if (cancelled) return;
         setPickupPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
       } catch (error) {
+        if (cancelled) return;
         console.error('Pickup pincode suggestions error:', error);
         setPickupPincodeSuggestions([]);
       } finally {
-        setLoadingPickupPincodeSuggestions(false);
+        if (!cancelled) setLoadingPickupPincodeSuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [formData.pickupPincode, formData.pickupCountry, pickupPincodeSuggestionsOpen]);
 
   useEffect(() => {
@@ -731,27 +681,31 @@ function CreateOrder() {
       return;
     }
 
+    const countryCode = getCountryCode(formData.deliveryCountry);
     const query = formData.deliveryPincode.trim();
-    if (!query || query.length < 2) {
+    if (!countryCode || !query || query.length < 2) {
       setDeliveryPincodeSuggestions([]);
       setLoadingDeliveryPincodeSuggestions(false);
       return;
     }
 
+    let cancelled = false;
     const timeoutId = setTimeout(async () => {
       try {
         setLoadingDeliveryPincodeSuggestions(true);
-        const response = await api.getPincodeSuggestions(query, getCountryCode(formData.deliveryCountry), 10);
+        const response = await api.getPincodeSuggestions(query, countryCode, 10);
+        if (cancelled) return;
         setDeliveryPincodeSuggestions(normalizeLocationSuggestions(response, [], 'pincode'));
       } catch (error) {
+        if (cancelled) return;
         console.error('Delivery pincode suggestions error:', error);
         setDeliveryPincodeSuggestions([]);
       } finally {
-        setLoadingDeliveryPincodeSuggestions(false);
+        if (!cancelled) setLoadingDeliveryPincodeSuggestions(false);
       }
     }, 250);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [formData.deliveryPincode, formData.deliveryCountry, deliveryPincodeSuggestionsOpen]);
 
   useEffect(() => {
@@ -854,10 +808,17 @@ function CreateOrder() {
 
   const handleSelectSuggestion = (prefix, field, value) => {
     const fieldName = `${prefix}${field}`;
+    const cityFieldName = `${prefix}City`;
     const nextValue = field === 'Pincode' ? getPincodeValue(value) : value;
+    // Pincode suggestions are displayed as "postal code - city".
+    // A bare postal code must not be copied into the city field.
+    const suggestedCity = field === 'Pincode'
+      ? value.split(' - ').slice(1).join(' - ').trim()
+      : '';
     setFormData(prev => ({
       ...prev,
       [fieldName]: nextValue,
+      ...(suggestedCity ? { [cityFieldName]: suggestedCity } : {}),
     }));
 
     if (prefix === 'pickup') {
@@ -870,10 +831,11 @@ function CreateOrder() {
       setDeliveryPincodeSuggestionsOpen(false);
     }
 
-    if (errors[fieldName]) {
+    if (errors[fieldName] || (suggestedCity && errors[cityFieldName])) {
       setErrors(prev => ({
         ...prev,
         [fieldName]: '',
+        ...(suggestedCity ? { [cityFieldName]: '' } : {}),
       }));
     }
   };

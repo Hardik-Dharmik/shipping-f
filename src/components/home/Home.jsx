@@ -69,11 +69,116 @@ function NotificationList({ items, emptyLabel }) {
 }
 
 export default function Home() {
- const {isEmployee,canAccess} = useAuth();
+ const {isAdmin,isEmployee,canAccess} = useAuth();
  // This endpoint returns a combined feed with no documented permission filter.
  const canLoadFeed = !isEmployee || (canAccess('billing') && canAccess('tickets'));
- return canLoadFeed ? <NotificationFeed /> : <section className="home-notifications"><h2>Home</h2><p>Notification widgets require both Billing and Tickets access.</p></section>;
+ return (
+   <>
+     {isAdmin && <HomeAnalytics />}
+     {canLoadFeed ? <NotificationFeed /> : <section className="home-notifications"><h2>Home</h2><p>Notification widgets require both Billing and Tickets access.</p></section>}
+   </>
+ );
 }
+
+const ANALYTICS_METRICS = [
+  ['totalOrders', 'Total orders', 'All saved orders, across every status', 'orders'],
+  ['totalCustomers', 'Total customers', 'Records in your shared directory', 'customers'],
+  ['pendingKyc', 'Pending review', 'Submitted and awaiting verification', 'pending'],
+  ['completedKyc', 'Completed', 'Required verification completed', 'completed'],
+  ['notStartedKyc', 'Not started', 'Required verification not yet started', 'not-started'],
+];
+
+function AnalyticsIcon({ type }) {
+  const paths = {
+    orders: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="M3 8v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5" /></>,
+    customers: <><circle cx="9" cy="8" r="3" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M21 21v-2a6 6 0 0 0-4-5.65" /></>,
+    pending: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    completed: <><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" /><path d="m8 12 3 3 5-6" /></>,
+    'not-started': <><rect x="5" y="3" width="14" height="18" rx="3" /><path d="M9 8h6M9 12h6M9 16h3" /></>,
+  };
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[type]}</svg>;
+}
+
+function AnalyticsCards({ metrics, data }) {
+  return (
+    <dl className="analytics-grid">
+      {metrics.map(([key, label, description, type]) => (
+        <div className={`analytics-card analytics-card--${type}`} key={key}>
+          <dt><span>{label}</span><span className="analytics-icon"><AnalyticsIcon type={type} /></span></dt>
+          <dd>{data[key]?.toLocaleString() ?? '—'}</dd>
+          <dd className="analytics-description">{description}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function HomeAnalytics() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [requestVersion, setRequestVersion] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAnalytics() {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await api.getAnalytics();
+        if (!response?.success || !response.data) {
+          throw new Error('Unable to load analytics');
+        }
+        if (!cancelled) setData(response.data);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Unable to load analytics');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadAnalytics();
+    return () => { cancelled = true; };
+  }, [requestVersion]);
+
+  return (
+    <section className="home-notifications home-analytics" aria-labelledby="analytics-heading">
+      <header className="home-header analytics-header">
+        <div>
+          <span className="analytics-eyebrow">Business overview</span>
+          <h2 id="analytics-heading">Analytics</h2>
+          <p>A snapshot of your orders, customers and verification status.</p>
+        </div>
+        <div className="analytics-toolbar">
+        <span className="analytics-scope">All time · Global</span>
+        <button className="refresh-btn" type="button" disabled={loading} onClick={() => setRequestVersion((value) => value + 1)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M6 6a8 8 0 0 1 14 6M4 12a8 8 0 0 0 14 6" /></svg>
+          Refresh
+        </button>
+        </div>
+      </header>
+      {loading ? (
+        <div className="home-status" role="status">Loading analytics...</div>
+      ) : error ? (
+        <div className="home-status error" role="alert">
+          <p>{error}</p>
+          <button className="refresh-btn" type="button" onClick={() => setRequestVersion((value) => value + 1)}>Retry</button>
+        </div>
+      ) : (
+        <>
+          <AnalyticsCards metrics={ANALYTICS_METRICS.slice(0, 2)} data={data} />
+          <div className="analytics-kyc">
+            <div className="analytics-kyc-heading">
+              <h3>KYC verification</h3>
+              <p>Only accounts that require KYC</p>
+            </div>
+            <AnalyticsCards metrics={ANALYTICS_METRICS.slice(2)} data={data} />
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 function NotificationFeed() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
